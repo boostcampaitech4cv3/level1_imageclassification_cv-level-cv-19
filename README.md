@@ -41,7 +41,7 @@ optimizer: Adam
 scheduler: (none)  
 criterion: CE  
 classifier: replace fc layer of pretrianed model with 1-layer Linear  
-patient: (early stopping count) 7  
+patient: (early stopping count) 15 
 freeze: freeze except classifier  
 
 <br>
