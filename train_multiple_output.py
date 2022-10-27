@@ -15,7 +15,7 @@ from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from dataset import MaskBaseDataset
+from dataset import MaskBaseDataset, LabelSplitDataset
 from loss import create_criterion
 
 def seed_everything(seed):
@@ -80,6 +80,9 @@ def increment_path(path, exist_ok=False):
         n = max(i) + 1 if i else 2
         return f"{path}{n}"
 
+def encode_multi_class(mask_label, gender_label, age_label) -> int:
+    return mask_label * 6 + gender_label * 3 + age_label
+
 
 def train(data_dir, model_dir, args):
     seed_everything(args.seed)
@@ -135,12 +138,13 @@ def train(data_dir, model_dir, args):
     model = torch.nn.DataParallel(model)
 
     # -- model freeze
-    model.requires_grad_(False)
-    for param, weight in model.named_parameters():
-        # print(param)
-        if param in ['module.backbone.head.weight', 'module.backbone.head.bias']:
-            weight.requires_grad = True
-            
+    
+    # model.requires_grad_(False)
+    # for param, weight in model.named_parameters():
+    #     # print(param)
+    #     if param in ['module.backbone.head.weight', 'module.backbone.head.bias']:
+    #         weight.requires_grad = True
+        
     # -- loss & metric
     criterion = create_criterion(args.criterion)  # default: cross_entropy
     opt_module = getattr(import_module("torch.optim"), args.optimizer)  # default: SGD
@@ -150,7 +154,6 @@ def train(data_dir, model_dir, args):
         weight_decay=5e-4
     )
 
-    # LR scheduler
     if int(args.lr_decay_step) == 0:
         scheduler = None
     else:
@@ -164,7 +167,6 @@ def train(data_dir, model_dir, args):
     best_val_acc = 0
     best_val_loss = np.inf
     for epoch in range(args.epochs):
-        # for finetuning
         if epoch > 30:
             model.requires_grad_(True)
 
@@ -172,17 +174,32 @@ def train(data_dir, model_dir, args):
         model.train()
         loss_value = 0
         matches = 0
+
+        # mask_label, gender_label, age_label
+
         for idx, train_batch in enumerate(train_loader):
-            inputs, labels = train_batch
+            inputs, mask_labels, gender_labels, age_labels = train_batch
             inputs = inputs.to(device)
-            labels = labels.to(device)
+            mask_labels = mask_labels.to(device)
+            gender_labels = gender_labels.to(device)
+            age_labels = age_labels.to(device)
 
             optimizer.zero_grad()
 
-            outs = model(inputs)
-            preds = torch.argmax(outs, dim=-1)
-            loss = criterion(outs, labels)
+            mask, gender, age = model(inputs)
 
+            preds_mask = torch.argmax(mask, dim=-1)
+            preds_gender = torch.argmax(gender, dim=-1)
+            preds_age = torch.argmax(age, dim=-1)
+            
+            preds = encode_multi_class(preds_mask, preds_gender, preds_age)    
+            labels = encode_multi_class(mask_labels, gender_labels, age_labels)
+            # preds = torch.argmax(outs, dim=-1)
+
+            mask_loss = criterion(mask, mask_labels)
+            gender_loss = criterion(gender, gender_labels)
+            age_loss = criterion(age, age_labels)
+            loss = 0.3 * mask_loss + 0.3 * gender_loss + 0.3 * age_loss
             loss.backward()
             optimizer.step()
 
@@ -201,12 +218,9 @@ def train(data_dir, model_dir, args):
 
                 loss_value = 0
                 matches = 0
-        
-        if int(args.lr_decay_step) == 0:
-            pass
-        else:
-            scheduler.step()
 
+        if not (scheduler == None):
+            scheduler.step()
 
         # val loop
         with torch.no_grad():
@@ -216,14 +230,27 @@ def train(data_dir, model_dir, args):
             val_acc_items = []
             figure = None
             for val_batch in val_loader:
-                inputs, labels = val_batch
+                inputs, mask_labels, gender_labels, age_labels = val_batch
+
                 inputs = inputs.to(device)
-                labels = labels.to(device)
+                mask_labels = mask_labels.to(device)
+                gender_labels = gender_labels.to(device)
+                age_labels = age_labels.to(device)
 
-                outs = model(inputs)
-                preds = torch.argmax(outs, dim=-1)
 
-                loss_item = criterion(outs, labels).item()
+                preds_mask = torch.argmax(mask, dim=-1)
+                preds_gender = torch.argmax(gender, dim=-1)
+                preds_age = torch.argmax(age, dim=-1)
+                
+                preds = encode_multi_class(preds_mask, preds_gender, preds_age)    
+                labels = encode_multi_class(mask_labels, gender_labels, age_labels)
+
+                mask_loss = criterion(mask, mask_labels)
+                gender_loss = criterion(gender, gender_labels)
+                age_loss = criterion(age, age_labels)
+                loss = 0.3 * mask_loss + 0.3 * gender_loss + 0.3 * age_loss
+
+                loss_item = loss.item()
                 acc_item = (labels == preds).sum().item()
                 val_loss_items.append(loss_item)
                 val_acc_items.append(acc_item)

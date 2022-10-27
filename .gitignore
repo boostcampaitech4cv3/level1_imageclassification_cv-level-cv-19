@@ -1,10 +1,10 @@
 ## except filename extenstion
 *.txt
 *.ipynb
+*.md
 
 ## except file
 README.md
-requirements.txt
 
 ## except directory
 Mission/
