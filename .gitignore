@@ -3,8 +3,6 @@
 *.ipynb
 
 ## except file
-README.md
-requirements.txt
 
 ## except directory
 Mission/
@@ -13,3 +11,5 @@ __pycache__/
 model/
 .ipynb_checkpoint/
 imsi/
+input/
+output/
