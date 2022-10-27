@@ -143,13 +143,14 @@ def train(data_dir, model_dir, args):
         
     lr_list = [learning_rate for learning_rate in args.lr] # default: 1e-3
     
-    optimzer_list = []
+    optimizer_list = []
     for idx, optimizer_name in enumerate(args.optimizer): # default: Adam
         optimizer = getattr(import_module("torch.optim"), optimizer_name)(
             filter(lambda p: p.requires_grad, model_list[idx].parameters()),
             lr=lr_list[idx],
             weight_decay=5e-4
             )
+        optimizer_list.append(optimizer)
     
     # scheduler_list = []
     # for lr_decay_step in args.lr_decay_step:
@@ -162,28 +163,33 @@ def train(data_dir, model_dir, args):
         json.dump(vars(args), f, ensure_ascii=False, indent=4)
 
     best_val_acc = 0
-    best_val_loss = np.inf
+    best_mean_loss = np.inf
     for epoch in range(args.epochs):
         # train loop
-        model.train()
-        loss_value = 0
+        for i in range(3): model_list[i].train()
+        loss_value = np.array[0.,0.,0.]
         matches = 0
+        matches_list = np.array[0,0,0]
+        preds= []
+        
         for idx, train_batch in enumerate(train_loader):
             inputs, labels = train_batch
-            inputs = inputs.to(device)
-            labels = labels.to(device)
+            inputs_list = list(inputs)
+            labels_list = list(labels)
 
-            optimizer.zero_grad()
-
-            outs = model(inputs)
-            preds = torch.argmax(outs, dim=-1)
-            loss = criterion(outs, labels)
-
-            loss.backward()
-            optimizer.step()
-
-            loss_value += loss.item()
-            matches += (preds == labels).sum().item()
+            for idx in range(3):
+                optimizer_list[idx].zero_grad()
+                outs = model_list[idx](inputs_list[idx])
+                preds.append(torch.argmax(outs,dim=-1))
+                loss = criterion_list[idx](outs,labels_list[idx])
+                
+                loss.backward()
+                optimizer_list[idx].step()
+                loss_value[idx] += loss.item()
+                matches_list[idx] += (preds[idx] == labels_list[idx]).sum().item()
+            
+            matches = (preds[0]*6 + preds[1]*3 + preds[2] == labels_list[3]).sum().item()
+            
             if (idx + 1) % args.log_interval == 0:
                 train_loss = loss_value / args.log_interval
                 train_acc = matches / args.batch_size / args.log_interval
@@ -198,7 +204,7 @@ def train(data_dir, model_dir, args):
                 loss_value = 0
                 matches = 0
 
-        scheduler.step()
+        #scheduler.step()
 
         # val loop
         with torch.no_grad():
