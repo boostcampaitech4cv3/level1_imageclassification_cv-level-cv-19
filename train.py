@@ -18,6 +18,7 @@ from torch.utils.tensorboard import SummaryWriter
 from dataset import MaskBaseDataset
 from loss import create_criterion
 
+
 def seed_everything(seed):
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
@@ -134,13 +135,6 @@ def train(data_dir, model_dir, args):
     ).to(device)
     model = torch.nn.DataParallel(model)
 
-    # -- model freeze
-    model.requires_grad_(False)
-    for param, weight in model.named_parameters():
-        # print(param)
-        if param in ['module.backbone.head.weight', 'module.backbone.head.bias']:
-            weight.requires_grad = True
-            
     # -- loss & metric
     criterion = create_criterion(args.criterion)  # default: cross_entropy
     opt_module = getattr(import_module("torch.optim"), args.optimizer)  # default: SGD
@@ -149,12 +143,7 @@ def train(data_dir, model_dir, args):
         lr=args.lr,
         weight_decay=5e-4
     )
-
-    # LR scheduler
-    if int(args.lr_decay_step) == 0:
-        scheduler = None
-    else:
-        scheduler = StepLR(optimizer, args.lr_decay_step, gamma=0.5)
+    scheduler = StepLR(optimizer, args.lr_decay_step, gamma=0.5)
 
     # -- logging
     logger = SummaryWriter(log_dir=save_dir)
@@ -164,10 +153,6 @@ def train(data_dir, model_dir, args):
     best_val_acc = 0
     best_val_loss = np.inf
     for epoch in range(args.epochs):
-        # for finetuning
-        if epoch > 30:
-            model.requires_grad_(True)
-
         # train loop
         model.train()
         loss_value = 0
@@ -201,12 +186,8 @@ def train(data_dir, model_dir, args):
 
                 loss_value = 0
                 matches = 0
-        
-        if int(args.lr_decay_step) == 0:
-            pass
-        else:
-            scheduler.step()
 
+        scheduler.step()
 
         # val loop
         with torch.no_grad():

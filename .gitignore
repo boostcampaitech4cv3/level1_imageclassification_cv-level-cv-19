@@ -1,10 +1,8 @@
 ## except filename extenstion
 *.txt
 *.ipynb
-*.md
 
 ## except file
-README.md
 
 ## except directory
 Mission/
@@ -13,3 +11,5 @@ __pycache__/
 model/
 .ipynb_checkpoint/
 imsi/
+input/
+output/
