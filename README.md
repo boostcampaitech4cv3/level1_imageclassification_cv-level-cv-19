@@ -5,7 +5,7 @@ level1_imageclassification_cv-level-cv-19 created by GitHub Classroom
 
 # Result
 |idx|누가|언제|구조|Backbone|Classifier|Data-augmentation|loss|optim|epochs|seed|batch|lr|test_acc|test_F1|val_acc|val_F1|
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 |0|Gu|10.26| 1 |pretrained ResNet50|Backbone's Last fc layer|-|CE|SGD|50|42|64|1e-3|54.93|0.50|-|-|
 |1|Gu|10.26| 1 |pretrained ResNext101|Backbone's Last fc layer|-|CE|SGD|50|42|64|1e-3|62.46|0.55|-|-|
 |2|TJ|10.27| AlexNet | AlexNet |AlexNet fc layer|-|CE|Adam|25|42|64|1e-3|35|0.24|-|-|
