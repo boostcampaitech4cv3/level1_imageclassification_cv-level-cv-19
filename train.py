@@ -129,21 +129,32 @@ def train(data_dir, model_dir, args):
     )
 
     # -- model
-    model_module = getattr(import_module("model"), args.model)  # default: BaseModel
-    model = model_module(
-        num_classes=num_classes
-    ).to(device)
-    model = torch.nn.DataParallel(model)
-
+    model_list = []
+    for model_name in args.model:
+        model = getattr(import_module("model"), model_name).to(device)
+        model = torch.nn.DataParallel(model)
+        model_list.append(model)
+        
+    
     # -- loss & metric
-    criterion = create_criterion(args.criterion)  # default: cross_entropy
-    opt_module = getattr(import_module("torch.optim"), args.optimizer)  # default: SGD
-    optimizer = opt_module(
-        filter(lambda p: p.requires_grad, model.parameters()),
-        lr=args.lr,
-        weight_decay=5e-4
-    )
-    scheduler = StepLR(optimizer, args.lr_decay_step, gamma=0.5)
+    criterion_list = []
+    for criterion_name in args.criterion:
+        criterion_list.append(create_criterion(criterion_name))  # default: cross_entropy
+        
+    lr_list = [learning_rate for learning_rate in args.lr] # default: 1e-3
+    
+    optimzer_list = []
+    for idx, optimizer_name in enumerate(args.optimizer): # default: Adam
+        optimizer = getattr(import_module("torch.optim"), optimizer_name)(
+            filter(lambda p: p.requires_grad, model_list[idx].parameters()),
+            lr=lr_list[idx],
+            weight_decay=5e-4
+            )
+    
+    # scheduler_list = []
+    # for lr_decay_step in args.lr_decay_step:
+    #     scheduler_list.append(lr_decay_step)
+        
 
     # -- logging
     logger = SummaryWriter(log_dir=save_dir)
@@ -245,12 +256,12 @@ if __name__ == '__main__':
     parser.add_argument("--resize", nargs="+", type=list, default=[128, 96], help='resize size for image when training')
     parser.add_argument('--batch_size', type=int, default=64, help='input batch size for training (default: 64)')
     parser.add_argument('--valid_batch_size', type=int, default=1000, help='input batch size for validing (default: 1000)')
-    parser.add_argument('--model', type=str, default='BaseModel', help='model type (default: BaseModel)')
-    parser.add_argument('--optimizer', type=str, default='SGD', help='optimizer type (default: SGD)')
-    parser.add_argument('--lr', type=float, default=1e-3, help='learning rate (default: 1e-3)')
+    parser.add_argument('--model', type=str, default=['ResNet50','ResNet50','ResNet50'], help='model type (default: ResNet50)')
+    parser.add_argument('--optimizer', type=str, default=['Adam','Adam','Adam'], help='optimizer type (default: Adam)')
+    parser.add_argument('--lr', type=float, default=[1e-3,1e-3,1e-3], help='learning rate (default: 1e-3)')
     parser.add_argument('--val_ratio', type=float, default=0.2, help='ratio for validaton (default: 0.2)')
-    parser.add_argument('--criterion', type=str, default='cross_entropy', help='criterion type (default: cross_entropy)')
-    parser.add_argument('--lr_decay_step', type=int, default=20, help='learning rate scheduler deacy step (default: 20)')
+    parser.add_argument('--criterion', type=str, default=['cross_entropy','cross_entropy','cross_entropy'], help='criterion type (default: cross_entropy)')
+    #parser.add_argument('--lr_decay_step', type=int, default=[20,20,20], help='learning rate scheduler deacy step (default: 20)')
     parser.add_argument('--log_interval', type=int, default=20, help='how many batches to wait before logging training status')
     parser.add_argument('--name', default='exp', help='model save at {SM_MODEL_DIR}/{name}')
 
