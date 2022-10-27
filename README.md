@@ -13,6 +13,9 @@ level1_imageclassification_cv-level-cv-19 created by GitHub Classroom
 |4|YR|10.27| 1model | basemodel| basemodel| CE|Adam|20|42|64|1e-3|42.68|0.28|
 |5|Gu|10.27| 1 | SwinT_b |Backbone's Last fc layer|CE|SGD|100|42|64|1e-3|51.00|0.3850|
 
+<br>
+<br>
+
 <details>
 <summary><b>Details</b></summary>
 <div markdown="1">
