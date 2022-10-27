@@ -25,7 +25,24 @@ level1_imageclassification_cv-level-cv-19 created by GitHub Classroom
 
 </div>
 </details>
+<br>
+<br>
 
+<b>Basic parameter setting</b>
+
+seed: 42  
+epochs: 200 (early stopping)  
+dataset:  MaskBaseDataset  
+data_augmentation: BaseAugmentation  
+batch_size: 64  
+backbone: ResNet50  
+learning_rate: 0.001  
+optimizer: Adam  
+scheduler: (none)  
+criterion: CE  
+classifier: replace fc layer of pretrianed model with 1-layer Linear  
+patient: (early stopping count) 7  
+freeze: freeze except classifier  
 
 <br>
 <br>
