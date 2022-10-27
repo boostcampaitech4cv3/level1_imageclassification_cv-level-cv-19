@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch.nn.functional as F
-
+from torchvision.models import swin_b
 
 class BaseModel(nn.Module):
     def __init__(self, num_classes):
@@ -32,21 +32,29 @@ class BaseModel(nn.Module):
         x = x.view(-1, 128)
         return self.fc(x)
 
-
-# Custom Model Template
-class MyModel(nn.Module):
+class Swin_b(nn.Module):
     def __init__(self, num_classes):
         super().__init__()
-
-        """
-        1. 위와 같이 생성자의 parameter 에 num_claases 를 포함해주세요.
-        2. 나만의 모델 아키텍쳐를 디자인 해봅니다.
-        3. 모델의 output_dimension 은 num_classes 로 설정해주세요.
-        """
+        self.backbone = swin_b(weights='IMAGENET1K_V1')
+        self.backbone.head = nn.Linear(1024, num_classes)
 
     def forward(self, x):
-        """
-        1. 위에서 정의한 모델 아키텍쳐를 forward propagation 을 진행해주세요
-        2. 결과로 나온 output 을 return 해주세요
-        """
+        x = self.backbone(x)
         return x
+
+# Multiple Output Model Template
+class MultipleOutputBaseModel(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.backbone = swin_b(weights='IMAGENET1K_V1')
+        self.backbone.head = nn.Linear(1024, 512)
+        self.mask_classifier = nn.Sequential(nn.Linear(512, 256), nn.Linear(256, 3))
+        self.gender_classifier = nn.Sequential(nn.Linear(512, 256), nn.Linear(256, 3))
+        self.age_classifier = nn.Sequential(nn.Linear(512, 256), nn.Linear(256, 2))
+ 
+    def forward(self, x):
+        x = self.backbone(x)
+        mask = self.mask_classifier(x)
+        gender = self.gender_classifier(x)
+        age = self.age_classifier(x)
+        return mask, gender, age
