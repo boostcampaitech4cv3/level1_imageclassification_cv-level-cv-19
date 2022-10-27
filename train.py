@@ -105,7 +105,7 @@ def train(data_dir, model_dir, args):
         mean=dataset.mean,
         std=dataset.std,
     )
-    dataset.set_transform(transform)
+    dataset.set_transform(transform, transform, transform) # mask, gender, age model에 적용될 transform
 
     # -- data_loader
     train_set, val_set = dataset.split_dataset()
