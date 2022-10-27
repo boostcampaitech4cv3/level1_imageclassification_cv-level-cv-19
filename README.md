@@ -16,7 +16,9 @@ level1_imageclassification_cv-level-cv-19 created by GitHub Classroom
 <details>
 <summary><b>Details</b></summary>
 <div markdown="1">
-- idx(5): 처음 30 epochs는 마지막 fc layer를 제외하고 frozen, 나머지 70 epochs는 frozen 없이 학습 
+  
+- idx 5: 처음 30 epochs는 마지막 fc layer를 제외하고 frozen, 나머지 70 epochs는 frozen 없이 학습 
+
 </div>
 </details>
 
