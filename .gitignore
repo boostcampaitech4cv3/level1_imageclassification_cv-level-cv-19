@@ -1,0 +1,15 @@
+## except filename extenstion
+*.txt
+*.ipynb
+
+## except file
+README.md
+requirements.txt
+
+## except directory
+Mission/
+.vscode/
+__pycache__/
+model/
+.ipynb_checkpoint/
+imsi/
