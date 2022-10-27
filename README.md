@@ -8,6 +8,7 @@ level1_imageclassification_cv-level-cv-19 created by GitHub Classroom
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 |Gu|10.26| ? |pretrained ResNet50|Backbone's Last fc layer|CE|SGD|50|42|64|1e-3|54.93|0.50|
 |Gu|10.26| ? |pretrained ResNext101|Backbone's Last fc layer|CE|SGD|50|42|64|1e-3|62.46|0.55|
+|TJ|10.27| AlexNet | AlexNet |CE|ADam|25|64|1e-3|0.35|0.24|
 |data|data|data|data|data|data|data|data|data|data|data|
 
 <br>
