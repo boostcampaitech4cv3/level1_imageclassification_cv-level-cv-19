@@ -29,9 +29,12 @@ def seed_everything(seed):
     random.seed(seed)
 
 
-def get_lr(optimizer):
-    for param_group in optimizer.param_groups:
-        return param_group['lr']
+def get_lr(optimizer_list):
+    tmp = []
+    for optimizer in optimizer_list:
+        for param_group in optimizer.param_groups:
+             tmp.append(param_group['lr'])
+    return tmp
 
 
 def grid_image(np_images, gts, preds, n=16, shuffle=False):
@@ -192,19 +195,29 @@ def train(data_dir, model_dir, args):
             
             if (idx + 1) % args.log_interval == 0:
                 train_loss = loss_value / args.log_interval
-                train_acc = matches / args.batch_size / args.log_interval
-                current_lr = get_lr(optimizer)
+                train_acc_all = matches / args.batch_size / args.log_interval
+                train_acc = matches_list / args.batch_size / args.log_interval
+                current_lr = get_lr(optimizer_list)
                 print(
                     f"Epoch[{epoch}/{args.epochs}]({idx + 1}/{len(train_loader)}) || "
-                    f"training loss {train_loss:4.4} || training accuracy {train_acc:4.2%} || lr {current_lr}"
+                    f"training loss || mask:{train_loss[0]:4.4} || gender:{train_loss[1]:4.4} || age:{train_loss[2]:4.4}\n"
+                    f" training accuracy || all:{train_acc_all:4.4} || mask:{train_acc[0]:4.4} || gender:{train_acc[1]:4.4} || age:{train_acc[2]:4.4} || lr {current_lr}"
                 )
-                logger.add_scalar("Train/loss", train_loss, epoch * len(train_loader) + idx)
-                logger.add_scalar("Train/accuracy", train_acc, epoch * len(train_loader) + idx)
+                logger.add_scalar("Train/loss_mask", train_loss[0], epoch * len(train_loader) + idx)
+                logger.add_scalar("Train/loss_gender", train_loss[1], epoch * len(train_loader) + idx)
+                logger.add_scalar("Train/loss_age", train_loss[2], epoch * len(train_loader) + idx)
+                
+                logger.add_scalar("Train/accuracy_all", train_acc_all, epoch * len(train_loader) + idx)
+                logger.add_scalar("Train/accuracy_mask", train_acc[0], epoch * len(train_loader) + idx)
+                logger.add_scalar("Train/accuracy_gender", train_acc[1], epoch * len(train_loader) + idx)
+                logger.add_scalar("Train/accuracy", train_acc[2], epoch * len(train_loader) + idx)
 
-                loss_value = 0
+                loss_value = np.array[0.,0.,0.]
                 matches = 0
-
-        #scheduler.step()
+                matches_list = np.array[0,0,0]
+                preds= []
+        
+        #for idx in range(3): scheduler_list[idx].step()
 
         # val loop
         with torch.no_grad():
