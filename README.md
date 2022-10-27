@@ -14,9 +14,9 @@ level1_imageclassification_cv-level-cv-19 created by GitHub Classroom
 |5|Gu|10.27| 1 | SwinT_b |Backbone's Last fc layer|CE|SGD|100|42|64|1e-3|51.00|0.3850|
 
 <details>
-<summary><b>History</b></summary>
+<summary><b>Details</b></summary>
 <div markdown="1">
-test    
+- idx(5): 처음 30 epochs는 마지막 fc layer를 제외하고 frozen, 나머지 70 epochs는 frozen 없이 학습 
 </div>
 </details>
 
