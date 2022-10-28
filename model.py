@@ -89,6 +89,7 @@ class AlexNet(nn.Module):
         x = self.classifier(x)
         return x
 
+# Swin_b
 from torchvision.models import swin_b
 class Swin_b(nn.Module):
     def __init__(self, num_classes):
@@ -117,3 +118,17 @@ class MultiHeadBaseModel(nn.Module):
         gender = self.gender_classifier(x)
         age = self.age_classifier(x)
         return mask, gender, age
+
+# ViT_B_16
+from torchvision.models import vit_b_16
+class ViT_B_16(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        self.backbone = vit_b_16(weights='DEFAULT')
+        for p in self.backbone.parameters():
+            p.requires_grad=True
+        self.backbone.head = nn.Linear(768, num_classes)
+
+    def forward(self, x):
+        output = self.backbone(x)
+        return output
