@@ -272,6 +272,14 @@ def train(data_dir, model_dir, args):
                 print(f"New best model for val accuracy : {val_acc:4.2%}! saving the best model..")
                 torch.save(model.module.state_dict(), f"{save_dir}/best.pth")
                 best_val_acc = val_acc
+                early_stopping = int(args.patient)
+            else:
+                early_stopping = early_stopping - 1
+                print(f"patient_left: {early_stopping}")
+                if early_stopping == 0:
+                    torch.save(model.module.state_dict(), f"{save_dir}/last.pth")                    
+                    print("early_stopping, save last model as last.pth")
+                    break                    
             torch.save(model.module.state_dict(), f"{save_dir}/last.pth")
             print(
                 f"[Val] acc : {val_acc:4.2%}, loss: {val_loss:4.2} || "
@@ -302,6 +310,7 @@ if __name__ == '__main__':
     parser.add_argument('--lr_decay_step', type=int, default=20, help='learning rate scheduler deacy step (default: 20)')
     parser.add_argument('--log_interval', type=int, default=20, help='how many batches to wait before logging training status')
     parser.add_argument('--name', default='exp', help='model save at {SM_MODEL_DIR}/{name}')
+    parser.add_argument('--patient', type=int, default = 15, help='early stopping patient(default: 15)')
 
     # Container environment
     parser.add_argument('--data_dir', type=str, default=os.environ.get('SM_CHANNEL_TRAIN', '/opt/ml/input/data/train/images'))

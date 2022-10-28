@@ -32,7 +32,6 @@ class BaseModel(nn.Module):
         x = x.view(-1, 128)
         return self.fc(x)
 
-
 # resnet 50
 from torchvision.models import resnet50
 class ResNet50(nn.Module):
@@ -108,9 +107,9 @@ class MultiHeadBaseModel(nn.Module):
         super().__init__()
         backbone = resnext101_64x4d(weights='IMAGENET1K_V1')
         self.features = nn.Sequential(*list(backbone.children())[:-1], nn.Flatten())
-        self.mask_classifier = nn.Sequential(nn.Linear(2048, 1024), nn.Linear(1024, 512), nn.Linear(512, 3))
-        self.gender_classifier = nn.Sequential(nn.Linear(2048, 1024), nn.Linear(1024, 512), nn.Linear(512, 2))
-        self.age_classifier = nn.Sequential(nn.Linear(2048, 1024), nn.Linear(1024, 512), nn.Linear(512, 3))
+        self.mask_classifier = nn.Sequential(nn.Linear(2048, 3))
+        self.gender_classifier = nn.Sequential(nn.Linear(2048, 2))
+        self.age_classifier = nn.Sequential(nn.Linear(2048, 3))
  
     def forward(self, x):
         x = self.features(x)
