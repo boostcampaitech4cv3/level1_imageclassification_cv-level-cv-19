@@ -105,7 +105,7 @@ class AlexNet(nn.Module):
         x = self.classifier(x)
         return x
 
-# Swin_b
+'''# Swin_b
 from torchvision.models import swin_b
 class Swin_b(nn.Module):
     def __init__(self, num_classes):
@@ -115,9 +115,9 @@ class Swin_b(nn.Module):
 
     def forward(self, x):
         x = self.backbone(x)
-        return x
+        return x'''
 
-# Multiple Output Model Template
+'''# Multiple Output Model Template
 from torchvision.models import resnext101_64x4d
 class MultiHeadBaseModel(nn.Module):
     def __init__(self):
@@ -133,9 +133,9 @@ class MultiHeadBaseModel(nn.Module):
         mask = self.mask_classifier(x)
         gender = self.gender_classifier(x)
         age = self.age_classifier(x)
-        return mask, gender, age
+        return mask, gender, age'''
 
-# ViT_B_16
+'''# ViT_B_16
 from torchvision.models import vit_b_16
 class ViT_B_16(nn.Module):
     def __init__(self, num_classes):
@@ -147,7 +147,7 @@ class ViT_B_16(nn.Module):
 
     def forward(self, x):
         output = self.backbone(x)
-        return output
+        return output'''
 
 
 # densenet 121
@@ -155,11 +155,26 @@ import torch
 class DenseNet121(nn.Module):
     def __init__(self, num_classes = 18):
         super().__init__()
-        self.backbone = torch.hub.load('pytorch/vision:v0.10.0', 'densenet121', pretrained=True)
-        self.classifier = nn.Linear(1024,num_classes)
+        self.backbone = torch.hub.load('pytorch/vision:v0.8.2', 'densenet121', pretrained=True)
+        fc1 = nn.Linear(1024,512)
+        self.backbone.classifier = fc1
+        for parameter in self.backbone.parameters():
+            parameter.requires_grad = False
+        self.backbone.classifier.weight.requires_grad = True
+        self.bn1 = nn.BatchNorm2d(3)
+        self.classifier2 = nn.Linear(512, 256)
+        self.bn2 = nn.BatchNorm2d(3)
+        self.classifier3 = nn.Linear(256, 18)
+        self.relu = nn.ReLU()
     
     def forward(self, x):
-        output = self.backbone(x)
+        x = self.backbone(x)
+        x = self.relu(x)
+        x = self.bn1(x)
+        x = self.classifier2(x)
+        x = self.relu(x)
+        x = self.bn2(x)
+        output = self.classifir3(x)
         return output
     
 # densenet201
