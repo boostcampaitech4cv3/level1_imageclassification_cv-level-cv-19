@@ -17,7 +17,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from dataset import MaskBaseDataset
 from loss import create_criterion
-from torchmetrics import ConfusionMatrix
+from torchmetrics import ConfusionMatrix, F1Score
 import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -170,14 +170,20 @@ def train(data_dir, model_dir, args):
 
     # -- data_loader
     train_set, val_set = dataset.split_dataset()
-
+    
+    if args.sampler == "None":
+        sampler_flag = (True, None)
+    else:
+        sampler_module = getattr(import_module("sampler"), args.sampler)
+        sampler_flag = (False, sampler_module(train_set, labels =  dataset.get_multi_labels())())
     train_loader = DataLoader(
         train_set,
         batch_size=args.batch_size,
         num_workers=multiprocessing.cpu_count() // 2,
-        shuffle=True,
+        shuffle=sampler_flag[0],
         pin_memory=use_cuda,
         drop_last=True,
+        sampler= sampler_flag[1]
     )
 
     val_loader = DataLoader(
@@ -223,6 +229,7 @@ def train(data_dir, model_dir, args):
 
     best_val_acc = 0
     best_val_loss = np.inf
+    best_f1_score = 0
     
     early_stopping = args.patient
     
@@ -308,6 +315,9 @@ def train(data_dir, model_dir, args):
             confusion_matrix_gender = torch.Tensor([[0]])
             confusion_matrix_age = torch.Tensor([[0]])
             
+            preds_expand = torch.tensor([])
+            labels_expand = torch.tensor([])
+            
             for val_batch in val_loader:
                 inputs, labels = val_batch
                 inputs = inputs.to(device)
@@ -361,35 +371,51 @@ def train(data_dir, model_dir, args):
                 confusion_matrix_gender = confmat(preds_gender,labels_gender).detach().cpu() + confusion_matrix_gender
                 confmat = ConfusionMatrix(num_classes = 3).to(device)
                 confusion_matrix_age = confmat(preds_age,labels_age).detach().cpu() + confusion_matrix_age
+                
+                preds_expand = torch.cat((preds_expand, preds.detach().cpu()),-1)
+                labels_expand = torch.cat((labels_expand, labels.detach().cpu()),-1)
                         
             confusion_all_fig, confusion_sep_fig = plot_confusion_matrix(confusion_matrix,confusion_matrix_mask, confusion_matrix_gender, confusion_matrix_age , save_dir)    
             logger.add_figure("val_confusion_matrix_all",confusion_all_fig, epoch)
             logger.add_figure("val_confusion_matrix_sep",confusion_sep_fig, epoch)
-                
+            
+            f1 = F1Score(num_classes=num_classes)
+            f1_score = f1(preds_expand.type(torch.LongTensor), labels_expand.type(torch.LongTensor)).item()
             val_loss = np.sum(val_loss_items) / len(val_loader)
             val_acc = np.sum(val_acc_items) / len(val_set)
             best_val_loss = min(best_val_loss, val_loss)
+            
+            flag = True
             if val_acc > best_val_acc:
                 print(f"New best model for val accuracy : {val_acc:4.2%}! saving the best model..")
-                torch.save(model.module.state_dict(), f"{save_dir}/best.pth")
+                torch.save(model.module.state_dict(), f"{save_dir}/best_acc.pth")
                 best_val_acc = val_acc
                 early_stopping = args.patient
-            else:
+                flag = False
+                
+            if f1_score > best_f1_score:
+                print(f"New best model for f1 score : {f1_score:4.4}! saving the best model..")
+                torch.save(model.module.state_dict(), f"{save_dir}/best_f1.pth")
+                best_f1_score = f1_score
+                early_stopping = args.patient
+                flag = False
+                
+            if flag:
                 early_stopping = early_stopping -1
                 print(f"patient_left: {early_stopping}")
                 if early_stopping == 0:
                     torch.save(model.module.state_dict(), f"{save_dir}/last.pth")                    
                     print("early_stopping, save last model as last.pth")
                     break                    
-            torch.save(model.module.state_dict(), f"{save_dir}/last.pth")
             print(
-                f"[Val] acc : {val_acc:4.2%}, loss: {val_loss:4.2} || "
-                f"best acc : {best_val_acc:4.2%}, best loss: {best_val_loss:4.2}"
+                f"[Val] acc : {val_acc:4.2%}, loss: {val_loss:4.2}, f1: {f1_score:4.4}|| "
+                f"best acc : {best_val_acc:4.2%}, best loss: {best_val_loss:4.2}, best f1: {best_f1_score:4.4}"
             )
             logger.add_scalar("Val/loss", val_loss, epoch)
             logger.add_scalar("Val/accuracy", val_acc, epoch)
             logger.add_figure("results", figure, epoch)
             logger.add_scalar("early_stopping_count", early_stopping, epoch)
+            logger.add_scalar("Val/f1_score", f1_score, epoch)
             
             print()
 
@@ -401,7 +427,7 @@ if __name__ == '__main__':
     # Data and model checkpoints directories
     parser.add_argument('--seed', type=int, default=42, help='random seed (default: 42)')
     parser.add_argument('--epochs', type=int, default=200, help='number of epochs to train (default: 200)')
-    parser.add_argument('--dataset', type=str, default='MaskBaseDataset', help='dataset augmentation type (default: MaskBaseDataset)')
+    parser.add_argument('--dataset', type=str, default='MaskSplitByProfileDataset', help='dataset augmentation type (default: MaskBaseDataset)')
     parser.add_argument('--augmentation', type=str, default='BaseAugmentation', help='data augmentation type (default: BaseAugmentation)')
     parser.add_argument("--resize", nargs="+", type=int, default=[128, 96], help='resize size for image when training')
     parser.add_argument('--batch_size', type=int, default=64, help='input batch size for training (default: 64)')
@@ -416,7 +442,8 @@ if __name__ == '__main__':
     parser.add_argument('--name', default='exp', help='model save at {SM_MODEL_DIR}/{name}')
     parser.add_argument('--patient', type=int, default = 15, help='early stopping patient(default: 15)')
     parser.add_argument('--cutmix_prob', type=float, default=0, help='cutmix probability')
-    parser.add_argument('--beta', default=0, type=float, help='hyperparameter beta')
+    parser.add_argument('--beta', type=float, default=0, help='hyperparameter beta')
+    parser.add_argument('--sampler', type=str, default='None', help='sampler for imblanced data (default:None), samplers in sampler.py')
     
     # Container environment
     parser.add_argument('--data_dir', type=str, default=os.environ.get('SM_CHANNEL_TRAIN', '/opt/ml/input/data/train/images'))
