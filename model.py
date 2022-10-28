@@ -51,3 +51,79 @@ class ResNet50(nn.Module):
     def forward(self, x):
         out = self.backbone(x)
         return out
+
+# AlexNet
+class AlexNet(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        self.features = nn.Sequential(
+            nn.Conv2d(3, 64, kernel_size=11, stride=4, padding=2),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+            nn.Conv2d(64, 192, kernel_size=5, padding=2),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+            nn.Conv2d(192, 384, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(384, 256, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 256, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+        )
+        self.avgpool = nn.AdaptiveAvgPool2d((6, 6))
+        self.classifier = nn.Sequential(
+            nn.Dropout(),
+            nn.Linear(256 * 6 * 6, 4096),
+            nn.ReLU(inplace=True),
+            nn.Dropout(),
+            nn.Linear(4096, 4096),
+            nn.ReLU(inplace=True),
+            nn.Linear(4096, num_classes),
+        )
+
+    def forward(self, x):
+        x = self.features(x)
+        x = self.avgpool(x)
+        x = x.view(-1, 256*6*6)
+        x = self.classifier(x)
+        return x
+
+class Swin_b(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        self.backbone = swin_b(weights='IMAGENET1K_V1')
+        self.backbone.head = nn.Linear(1024, num_classes)
+
+    def forward(self, x):
+        x = self.backbone(x)
+        return x
+
+class VGG19(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        self.model = vgg19_bn(pretrained=True)
+        self.model.classifier = nn.Sequential(
+            nn.Linear(512 * 7 * 7, 4096),
+            nn.ReLU(True),
+            nn.Dropout(),
+            nn.Linear(4096, 4096),
+            nn.ReLU(True),
+            nn.Dropout(),
+            nn.Linear(4096, num_classes)
+        )
+    def forward(self, x):
+        output = self.model(x)
+        return output
+
+
+class RegNet_Y_128_GF(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        self.backbone = regnet_y_128gf(weights='IMAGENET1K_SWAG_E2E_V1')
+        for p in self.backbone.parameters():
+            p.requires_grad = False
+        self.backbone.fc = nn.Linear(7392, num_classes)
+    def forward(self, x):
+        output = self.backbone(x)
+        return output
