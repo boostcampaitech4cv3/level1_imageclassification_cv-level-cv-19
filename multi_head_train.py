@@ -202,6 +202,8 @@ def train(data_dir, model_dir, args):
             age_labels = age_labels.to(device)
 
             r = np.random.rand(1)
+
+            # for CutMix
             if args.beta > 0 and r < args.cutmix_prob:
                 # generate mixed sample
                 lam = np.random.beta(args.beta, args.beta)
