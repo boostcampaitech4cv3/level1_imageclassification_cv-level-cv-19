@@ -292,6 +292,33 @@ class MaskSplitByProfileDataset(MaskBaseDataset):
     def split_dataset(self) -> List[Subset]:
         return [Subset(self, indices) for phase, indices in self.indices.items()]
 
+# 3-body dataset
+class Three_Body_MaskBaseDataset(MaskBaseDataset):
+    def __init__(self, data_dir, mean=(0.548, 0.504, 0.479), std=(0.237, 0.247, 0.246), val_ratio=0.2):
+        super().__init__(data_dir, mean=(0.548, 0.504, 0.479), std=(0.237, 0.247, 0.246), val_ratio=0.2)
+        
+    def set_transform(self, transform_mask, transform_gender, transform_age):
+        self.transform_mask = transform_mask
+        self.transform_gender = transform_gender
+        self.transform_age = transform_age
+    
+    def __getitem__(self, index):
+        
+        image = super().read_image(index)
+        mask_label = super().get_mask_label(index)
+        gender_label = super().get_gender_label(index)
+        age_label = super().get_age_label(index)
+        multi_class_label = super().encode_multi_class(mask_label, gender_label, age_label)
+
+        image_transform_mask = self.transform_mask(image)
+        image_transform_gender = self.transform_gender(image)
+        image_transform_age = self.transform_age(image)
+        
+        return (image_transform_mask,image_transform_gender,image_transform_age ), (mask_label, gender_label, age_label, multi_class_label)
+    
+    def __len__(self):
+        return super().__len__()
+
 
 class TestDataset(Dataset):
     def __init__(self, img_paths, resize, mean=(0.548, 0.504, 0.479), std=(0.237, 0.247, 0.246)):

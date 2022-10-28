@@ -99,7 +99,6 @@ class AlexNet(nn.Module):
             nn.ReLU(inplace=True),
             nn.Linear(4096, num_classes),
         )
-
     def forward(self, x):
         x = self.features(x)
         x = self.avgpool(x)
