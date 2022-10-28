@@ -35,11 +35,11 @@ class BaseModel(nn.Module):
 # resnet 50
 from torchvision.models import resnet50
 class ResNet50(nn.Module):
-    def __init__(self):
+    def __init__(self, num_classes):
         super().__init__()
 
         self.backbone = resnet50(pretrained=True)
-        self.backbone.fc = nn.Linear(2048,18)
+        self.backbone.fc = nn.Linear(2048, num_classes)
         
         # freeze except classifier
         for parameter in self.backbone.parameters():
