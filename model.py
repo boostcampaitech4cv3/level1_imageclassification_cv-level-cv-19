@@ -32,12 +32,12 @@ class BaseModel(nn.Module):
         return self.fc(x)
 
 # resnet 50
-from torchvision.models import resnet50
+from torchvision.models import resnet50, ResNet50_Weights
 class ResNet50(nn.Module):
     def __init__(self, num_classes):
         super().__init__()
 
-        self.backbone = resnet50(pretrained=True)
+        self.backbone = resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)
         self.backbone.fc = nn.Linear(2048, num_classes)
         
         # freeze except classifier

@@ -17,6 +17,13 @@ from torch.utils.tensorboard import SummaryWriter
 
 from dataset import MaskBaseDataset
 from loss import create_criterion
+from torchmetrics import ConfusionMatrix
+import seaborn as sns
+import pandas as pd
+import matplotlib.pyplot as plt
+
+import warnings
+warnings.filterwarnings(action='ignore')
 
 
 def seed_everything(seed):
@@ -97,6 +104,44 @@ def rand_bbox(size, lam):
     bby2 = np.clip(cy + cut_h // 2, 0, H)
 
     return bbx1, bby1, bbx2, bby2
+
+def plot_confusion_matrix(confusion_matrix,confusion_matrix_mask, confusion_matrix_gender, confusion_matrix_age, dir_path):
+    fig_all, ax = plt.subplots(figsize=(15, 15))
+    sns.heatmap(confusion_matrix, linewidths=1, annot=True, ax=ax, fmt='g', cmap= "Blues", cbar = False)
+    ax.axes.set_xlabel('Predicted labels')
+    ax.axes.set_ylabel('True labels')
+    tmp = []
+    for i in range(3):
+        for j in range(2):
+            for k in range(3):
+                tmp.append(f'[{i},{j},{k}]')
+
+    ax.axes.xaxis.set_ticklabels([*tmp])
+    ax.axes.yaxis.set_ticklabels([*tmp])
+    fig_all.savefig(dir_path+"/18_class_confusion_matrix.png")
+    
+    fig, ax = plt.subplots(ncols=3, figsize=(15, 5))
+    sns.heatmap(confusion_matrix_mask, linewidths=1, annot=True, ax=ax[0], fmt='g', cmap= "Blues", cbar = False)
+    sns.heatmap(confusion_matrix_gender, linewidths=1, annot=True, ax=ax[1], fmt='g', cmap= "Blues", cbar = False)
+    sns.heatmap(confusion_matrix_age, linewidths=1, annot=True, ax=ax[2], fmt='g', cmap= "Blues", cbar = False)
+    
+    for i, title in enumerate(['mask','gender','age']):
+        ax[i].axes.set_title(title)
+        ax[i].axes.set_xlabel('Predicted labels')
+        ax[i].axes.set_ylabel('True labels')
+    
+    ax[0].axes.xaxis.set_ticklabels(['Wear', 'Incorrect', 'Not Wear'])
+    ax[0].axes.yaxis.set_ticklabels(['Wear', 'Incorrect', 'Not Wear'])
+    
+    ax[1].axes.xaxis.set_ticklabels(['Male', 'Female'])
+    ax[1].axes.yaxis.set_ticklabels(['Male', 'Female'])
+
+    ax[2].axes.xaxis.set_ticklabels(['<30', '>=30 and < 60', '>=60'])
+    ax[2].axes.yaxis.set_ticklabels(['<30', '>=30 and < 60', '>=60'])
+    
+    fig.savefig(dir_path+"/sep_class_confusion_matrix.png")  
+    
+    return fig_all, fig
 
 def train(data_dir, model_dir, args):
     seed_everything(args.seed)
@@ -257,6 +302,12 @@ def train(data_dir, model_dir, args):
             val_loss_items = []
             val_acc_items = []
             figure = None
+            
+            confusion_matrix  = torch.Tensor([[0]])
+            confusion_matrix_mask = torch.Tensor([[0]])
+            confusion_matrix_gender = torch.Tensor([[0]])
+            confusion_matrix_age = torch.Tensor([[0]])
+            
             for val_batch in val_loader:
                 inputs, labels = val_batch
                 inputs = inputs.to(device)
@@ -298,7 +349,23 @@ def train(data_dir, model_dir, args):
                     figure = grid_image(
                         inputs_np, labels, preds, n=16, shuffle=args.dataset != "MaskSplitByProfileDataset"
                     )
-
+                
+                preds_mask, preds_gender, preds_age = MaskBaseDataset.decode_multi_class(preds)
+                labels_mask, labels_gender, labels_age = MaskBaseDataset.decode_multi_class(labels)
+                
+                confmat = ConfusionMatrix(num_classes = 18).to(device)
+                confusion_matrix = confmat(preds,labels).detach().cpu() + confusion_matrix
+                confmat = ConfusionMatrix(num_classes = 3).to(device)
+                confusion_matrix_mask = confmat(preds_mask,labels_mask).detach().cpu() + confusion_matrix_mask
+                confmat = ConfusionMatrix(num_classes = 2).to(device)
+                confusion_matrix_gender = confmat(preds_gender,labels_gender).detach().cpu() + confusion_matrix_gender
+                confmat = ConfusionMatrix(num_classes = 3).to(device)
+                confusion_matrix_age = confmat(preds_age,labels_age).detach().cpu() + confusion_matrix_age
+                        
+            confusion_all_fig, confusion_sep_fig = plot_confusion_matrix(confusion_matrix,confusion_matrix_mask, confusion_matrix_gender, confusion_matrix_age , save_dir)    
+            logger.add_figure("val_confusion_matrix_all",confusion_all_fig, epoch)
+            logger.add_figure("val_confusion_matrix_sep",confusion_sep_fig, epoch)
+                
             val_loss = np.sum(val_loss_items) / len(val_loader)
             val_acc = np.sum(val_acc_items) / len(val_set)
             best_val_loss = min(best_val_loss, val_loss)
@@ -323,6 +390,7 @@ def train(data_dir, model_dir, args):
             logger.add_scalar("Val/accuracy", val_acc, epoch)
             logger.add_figure("results", figure, epoch)
             logger.add_scalar("early_stopping_count", early_stopping, epoch)
+            
             print()
 
 
@@ -361,3 +429,4 @@ if __name__ == '__main__':
     model_dir = args.model_dir
 
     train(data_dir, model_dir, args)
+    
