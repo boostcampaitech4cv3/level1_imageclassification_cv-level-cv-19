@@ -38,11 +38,12 @@ batch_size: 64
 backbone: ResNet50  
 learning_rate: 0.001  
 optimizer: Adam  
-scheduler: (none)  
+lr_decay_step :0   
 criterion: CE  
 classifier: replace fc layer of pretrianed model with 1-layer Linear  
 patient: (early stopping count) 15 
-freeze: freeze except classifier  
+freeze: freeze except classifier
+
 
 <br>
 <br>
