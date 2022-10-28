@@ -89,6 +89,7 @@ class AlexNet(nn.Module):
         x = self.classifier(x)
         return x
 
+from torchvision.models import swin_b
 class Swin_b(nn.Module):
     def __init__(self, num_classes):
         super().__init__()
@@ -99,6 +100,7 @@ class Swin_b(nn.Module):
         x = self.backbone(x)
         return x
 
+from torchvision.models import vgg19_bn
 class VGG19(nn.Module):
     def __init__(self, num_classes):
         super().__init__()
@@ -116,7 +118,7 @@ class VGG19(nn.Module):
         output = self.model(x)
         return output
 
-
+from torchvision.models import regnet_y_128gf, RegNet_Y_128GF_Weights
 class RegNet_Y_128_GF(nn.Module):
     def __init__(self, num_classes):
         super().__init__()
