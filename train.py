@@ -81,6 +81,23 @@ def increment_path(path, exist_ok=False):
         n = max(i) + 1 if i else 2
         return f"{path}{n}"
 
+def rand_bbox(size, lam):
+    W = size[2]
+    H = size[3]
+    cut_rat = np.sqrt(1. - lam)
+    cut_w = np.int(W * cut_rat)
+    cut_h = np.int(H * cut_rat)
+
+    # uniform
+    cx = np.random.randint(W)
+    cy = np.random.randint(H)
+
+    bbx1 = np.clip(cx - cut_w // 2, 0, W)
+    bby1 = np.clip(cy - cut_h // 2, 0, H)
+    bbx2 = np.clip(cx + cut_w // 2, 0, W)
+    bby2 = np.clip(cy + cut_h // 2, 0, H)
+
+    return bbx1, bby1, bbx2, bby2
 
 def train(data_dir, model_dir, args):
     seed_everything(args.seed)
@@ -179,17 +196,40 @@ def train(data_dir, model_dir, args):
             inputs = inputs.to(device)
             labels = labels.to(device)
 
+            r = np.random.rand(1)
+
+            # for CutMix
+            if args.beta > 0 and r < args.cutmix_prob:
+                # generate mixed sample
+                lam = np.random.beta(args.beta, args.beta)
+                rand_index = torch.randperm(inputs.size()[0]).cuda()
+                
+                labels_a = labels
+                labels_b = labels[rand_index]
+                
+                bbx1, bby1, bbx2, bby2 = rand_bbox(inputs.size(), lam)
+                inputs[:, :, bbx1:bbx2, bby1:bby2] = inputs[rand_index, :, bbx1:bbx2, bby1:bby2]
+                
+                # adjust lambda to exactly match pixel ratio
+                lam = 1 - ((bbx2 - bbx1) * (bby2 - bby1) / (inputs.size()[-1] * inputs.size()[-2]))
+                
+                # compute output
+                outs = model(inputs)
+
+                loss = criterion(outs, labels_a) * lam + criterion(outs, labels_b) * (1. - lam)
+                
+            else:
+                outs = model(inputs)
+                loss = criterion(outs, labels)
+                
             optimizer.zero_grad()
-
-            outs = model(inputs)
-            preds = torch.argmax(outs, dim=-1)
             
-            loss = criterion(outs, labels)
-
             loss.backward()
             optimizer.step()
 
             loss_value += loss.item()
+
+            preds = torch.argmax(outs, dim=-1)
             matches += (preds == labels).sum().item()
             if (idx + 1) % args.log_interval == 0:
                 train_loss = loss_value / args.log_interval
@@ -223,7 +263,29 @@ def train(data_dir, model_dir, args):
                 inputs = inputs.to(device)
                 labels = labels.to(device)
 
-                outs = model(inputs)
+                r = np.random.rand(1)
+                if args.beta > 0 and r < args.cutmix_prob:
+                    # generate mixed sample
+                    lam = np.random.beta(args.beta, args.beta)
+                    rand_index = torch.randperm(inputs.size()[0]).cuda()
+                    
+                    labels_a = labels
+                    labels_b = labels[rand_index]
+                    
+                    bbx1, bby1, bbx2, bby2 = rand_bbox(inputs.size(), lam)
+                    inputs[:, :, bbx1:bbx2, bby1:bby2] = inputs[rand_index, :, bbx1:bbx2, bby1:bby2]
+                    
+                    # adjust lambda to exactly match pixel ratio
+                    lam = 1 - ((bbx2 - bbx1) * (bby2 - bby1) / (inputs.size()[-1] * inputs.size()[-2]))
+                    
+                    # compute output
+                    outs = model(inputs)
+                    loss = criterion(outs, labels_a) * lam + criterion(outs, labels_b) * (1. - lam)
+
+                else:
+                    outs = model(inputs)
+                    loss = criterion(outs, labels)
+
                 preds = torch.argmax(outs, dim=-1)
 
                 loss_item = criterion(outs, labels).item()
@@ -286,7 +348,9 @@ if __name__ == '__main__':
     parser.add_argument('--log_interval', type=int, default=20, help='how many batches to wait before logging training status')
     parser.add_argument('--name', default='exp', help='model save at {SM_MODEL_DIR}/{name}')
     parser.add_argument('--patient', type=int, default = 15, help='early stopping patient(default: 15)')
-
+    parser.add_argument('--cutmix_prob', type=float, default=0, help='cutmix probability')
+    parser.add_argument('--beta', default=0, type=float, help='hyperparameter beta')
+    
     # Container environment
     parser.add_argument('--data_dir', type=str, default=os.environ.get('SM_CHANNEL_TRAIN', '/opt/ml/input/data/train/images'))
     parser.add_argument('--model_dir', type=str, default=os.environ.get('SM_MODEL_DIR', './model'))
