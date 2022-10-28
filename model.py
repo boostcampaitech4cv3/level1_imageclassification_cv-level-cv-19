@@ -1,6 +1,6 @@
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision.models import swin_b, resnext101_64x4d
+from torchvision.models import swin_b
 
 class BaseModel(nn.Module):
     def __init__(self, num_classes):
@@ -32,6 +32,64 @@ class BaseModel(nn.Module):
         x = x.view(-1, 128)
         return self.fc(x)
 
+
+# resnet 50
+from torchvision.models import resnet50
+class ResNet50(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+        self.backbone = resnet50(pretrained=True)
+        self.backbone.fc = nn.Linear(2048,18)
+        
+        # freeze except classifier
+        for parameter in self.backbone.parameters():
+            parameter.requires_grad = False
+        self.backbone.fc.weight.requires_grad = True
+        self.backbone.fc.bias.requires_grad = True
+
+    def forward(self, x):
+        out = self.backbone(x)
+        return out
+
+# AlexNet
+class AlexNet(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        self.features = nn.Sequential(
+            nn.Conv2d(3, 64, kernel_size=11, stride=4, padding=2),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+            nn.Conv2d(64, 192, kernel_size=5, padding=2),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+            nn.Conv2d(192, 384, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(384, 256, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(256, 256, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.MaxPool2d(kernel_size=3, stride=2),
+        )
+        self.avgpool = nn.AdaptiveAvgPool2d((6, 6))
+        self.classifier = nn.Sequential(
+            nn.Dropout(),
+            nn.Linear(256 * 6 * 6, 4096),
+            nn.ReLU(inplace=True),
+            nn.Dropout(),
+            nn.Linear(4096, 4096),
+            nn.ReLU(inplace=True),
+            nn.Linear(4096, num_classes),
+        )
+
+    def forward(self, x):
+        x = self.features(x)
+        x = self.avgpool(x)
+        x = x.view(-1, 256*6*6)
+        x = self.classifier(x)
+        return x
+
+from torchvision.models import swin_b
 class Swin_b(nn.Module):
     def __init__(self, num_classes):
         super().__init__()
@@ -43,21 +101,18 @@ class Swin_b(nn.Module):
         return x
 
 # Multiple Output Model Template
-class MultiHeadBaseModel(nn.Module):
+class MultipleOutputBaseModel(nn.Module):
     def __init__(self):
         super().__init__()
-        backbone = resnext101_64x4d(weights='IMAGENET1K_V1')
-
-        self.features = nn.Sequential(*list(backbone.children())[:-1], nn.Flatten())
-        self.mask_classifier = nn.Sequential(nn.Linear(2048, 1024), nn.Linear(1024, 512), nn.Linear(512, 3))
-        self.gender_classifier = nn.Sequential(nn.Linear(2048, 1024), nn.Linear(1024, 512), nn.Linear(512, 2))
-        self.age_classifier = nn.Sequential(nn.Linear(2048, 1024), nn.Linear(1024, 512), nn.Linear(512, 3))
+        self.backbone = swin_b(weights='IMAGENET1K_V1')
+        self.backbone.head = nn.Linear(1024, 512)
+        self.mask_classifier = nn.Sequential(nn.Linear(512, 256), nn.Linear(256, 3))
+        self.gender_classifier = nn.Sequential(nn.Linear(512, 256), nn.Linear(256, 3))
+        self.age_classifier = nn.Sequential(nn.Linear(512, 256), nn.Linear(256, 2))
  
     def forward(self, x):
-        x = self.features(x)
+        x = self.backbone(x)
         mask = self.mask_classifier(x)
         gender = self.gender_classifier(x)
         age = self.age_classifier(x)
         return mask, gender, age
-
-a = MultiHeadBaseModel() # for model architecture check

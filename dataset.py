@@ -314,7 +314,7 @@ class TestDataset(Dataset):
 
 
 class LabelSplitDataset(Dataset):
-    num_classes = 3
+    num_classes = 3 * 2 * 3
 
     _file_names = {
         "mask1": MaskLabels.MASK,
@@ -365,7 +365,6 @@ class LabelSplitDataset(Dataset):
                 self.gender_labels.append(gender_label)
                 self.age_labels.append(age_label)
 
-
     def calc_statistics(self):
         has_statistics = self.mean is not None and self.std is not None
         if not has_statistics:
@@ -387,9 +386,9 @@ class LabelSplitDataset(Dataset):
         assert self.transform is not None, ".set_tranform 메소드를 이용하여 transform 을 주입해주세요"
 
         image = self.read_image(index)
-        mask_label = self.encode_mask_label(self.get_mask_label(index))
-        gender_label = self.encode_gender_label(self.get_gender_label(index))
-        age_label = self.encode_age_label(self.get_age_label(index))
+        mask_label = self.get_mask_label(index)
+        gender_label = self.get_gender_label(index)
+        age_label = self.get_age_label(index)
 
         image_transform = self.transform(image)
         return image_transform, mask_label, gender_label, age_label
@@ -413,17 +412,6 @@ class LabelSplitDataset(Dataset):
     @staticmethod
     def encode_multi_class(mask_label, gender_label, age_label) -> int:
         return mask_label * 6 + gender_label * 3 + age_label
-    
-    @staticmethod
-    def encode_mask_label(mask_label) -> int:
-        return mask_label * 1
-
-    @staticmethod
-    def encode_gender_label(gender_label) -> int:
-        return gender_label * 1 
-    @staticmethod
-    def encode_age_label(age_label) -> int:
-        return age_label * 1
 
     @staticmethod
     def decode_multi_class(multi_class_label) -> Tuple[MaskLabels, GenderLabels, AgeLabels]:
