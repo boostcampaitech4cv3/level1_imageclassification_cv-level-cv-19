@@ -101,17 +101,18 @@ class Swin_b(nn.Module):
         return x
 
 # Multiple Output Model Template
-class MultipleOutputBaseModel(nn.Module):
+from torchvision.models import resnext101_64x4d
+class MultiHeadBaseModel(nn.Module):
     def __init__(self):
         super().__init__()
-        self.backbone = swin_b(weights='IMAGENET1K_V1')
-        self.backbone.head = nn.Linear(1024, 512)
-        self.mask_classifier = nn.Sequential(nn.Linear(512, 256), nn.Linear(256, 3))
-        self.gender_classifier = nn.Sequential(nn.Linear(512, 256), nn.Linear(256, 3))
-        self.age_classifier = nn.Sequential(nn.Linear(512, 256), nn.Linear(256, 2))
+        backbone = resnext101_64x4d(weights='IMAGENET1K_V1')
+        self.features = nn.Sequential(*list(backbone.children())[:-1], nn.Flatten())
+        self.mask_classifier = nn.Sequential(nn.Linear(2048, 1024), nn.Linear(1024, 512), nn.Linear(512, 3))
+        self.gender_classifier = nn.Sequential(nn.Linear(2048, 1024), nn.Linear(1024, 512), nn.Linear(512, 2))
+        self.age_classifier = nn.Sequential(nn.Linear(2048, 1024), nn.Linear(1024, 512), nn.Linear(512, 3))
  
     def forward(self, x):
-        x = self.backbone(x)
+        x = self.features(x)
         mask = self.mask_classifier(x)
         gender = self.gender_classifier(x)
         age = self.age_classifier(x)
