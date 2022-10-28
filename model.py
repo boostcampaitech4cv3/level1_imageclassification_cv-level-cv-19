@@ -51,6 +51,25 @@ class ResNet50(nn.Module):
         out = self.backbone(x)
         return out
 
+# resnet 101
+from torchvision.models import resnet101
+class ResNet101(nn.Module):
+    def __init__(self, num_classes): 
+        super().__init__()
+        
+        self.backbone = resnet101(pretrained=True)
+        self.fc = nn.Linear(2048, num_classes)
+        
+        # freeze except classifier
+        for parameter in self.backbone.parameters():
+            parameter.requires_grad = False
+        self.backbone.fc.weight.requires_grad = True
+        self.backbone.fc.bias.requires_grad = True
+    
+    def forward(self, x):
+        out = self.backbone(x)
+        return out
+
 # AlexNet
 class AlexNet(nn.Module):
     def __init__(self, num_classes):
