@@ -12,16 +12,30 @@ from dataset import TestDataset, MaskBaseDataset
 
 def load_model(saved_model, num_classes, device):
     model_cls = getattr(import_module("model"), args.model)
-    model = model_cls()
+    model_mask = model_cls(
+        num_classes=3
+    )
+    model_gender = model_cls(
+        num_classes=2
+    )
+    model_age = model_cls(
+        num_classes=3
+    )
 
     # tarpath = os.path.join(saved_model, 'best.tar.gz')
     # tar = tarfile.open(tarpath, 'r:gz')
     # tar.extractall(path=saved_model)
 
-    model_path = os.path.join(saved_model, 'best.pth')
-    model.load_state_dict(torch.load(model_path, map_location=device))
+    model_mask_path = os.path.join(saved_model, 'best_mask.pth')
+    model_mask.load_state_dict(torch.load(model_mask_path, map_location=device))
+    
+    model_gender_path = os.path.join(saved_model, 'best_gender.pth')
+    model_gender.load_state_dict(torch.load(model_gender_path, map_location=device))
+    
+    model_age_path = os.path.join(saved_model, 'best_age.pth')
+    model_age.load_state_dict(torch.load(model_age_path, map_location=device))
 
-    return model
+    return model_mask, model_gender, model_age
 
 
 @torch.no_grad()
@@ -32,8 +46,15 @@ def inference(data_dir, model_dir, output_dir, args):
     device = torch.device("cuda" if use_cuda else "cpu")
 
     num_classes = MaskBaseDataset.num_classes  # 18
-    model = load_model(model_dir, num_classes, device).to(device)
-    model.eval()
+    model_mask, model_gender, model_age = load_model(model_dir, num_classes, device)
+    
+    model_mask.to(device)
+    model_gender.to(device)
+    model_age.to(device)
+    
+    model_mask.eval()
+    model_gender.eval()
+    model_age.eval()
 
     img_root = os.path.join(data_dir, 'images')
     info_path = os.path.join(data_dir, 'info.csv')
@@ -55,8 +76,16 @@ def inference(data_dir, model_dir, output_dir, args):
     with torch.no_grad():
         for idx, images in enumerate(loader):
             images = images.to(device)
-            pred = model(images)
-            pred = pred.argmax(dim=-1)
+            pred_mask = model_mask(images)
+            pred_mask = pred_mask.argmax(dim=-1)
+            
+            pred_gender = model_gender(images)
+            pred_gender = pred_gender.argmax(dim=-1)
+            
+            pred_age = model_age(images)
+            pred_age = pred_age.argmax(dim=-1)
+            
+            pred = pred_mask *6 + pred_gender *2 + pred_age
             preds.extend(pred.cpu().numpy())
 
     info['ans'] = preds
@@ -71,7 +100,7 @@ if __name__ == '__main__':
     # Data and model checkpoints directories
     parser.add_argument('--batch_size', type=int, default=1000, help='input batch size for validing (default: 1000)')
     parser.add_argument('--resize', type=tuple, default=(96, 128), help='resize size for image when you trained (default: (96, 128))')
-    parser.add_argument('--model', type=str, default='ResNet50', help='model type (default: ResNet50)')
+    parser.add_argument('--model', type=str, default='ResNet50', help='model type (default: BaseModel)')
 
     # Container environment
     parser.add_argument('--data_dir', type=str, default=os.environ.get('SM_CHANNEL_EVAL', '/opt/ml/input/data/eval'))

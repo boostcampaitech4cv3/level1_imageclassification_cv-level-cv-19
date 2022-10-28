@@ -3,6 +3,8 @@ import glob
 import json
 import multiprocessing
 import os
+os.environ['CUDA_LAUNCH_BLOCKING'] = "1"
+
 import random
 import re
 from importlib import import_module
@@ -15,9 +17,8 @@ from torch.optim.lr_scheduler import StepLR
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from dataset import MaskBaseDataset
+from dataset import MaskBaseDataset, LabelSplitDataset
 from loss import create_criterion
-
 
 def seed_everything(seed):
     torch.manual_seed(seed)
@@ -66,6 +67,7 @@ def grid_image(np_images, gts, preds, n=16, shuffle=False):
 
 def increment_path(path, exist_ok=False):
     """ Automatically increment path, i.e. runs/exp --> runs/exp0, runs/exp1 etc.
+
     Args:
         path (str or pathlib.Path): f"{model_dir}/{args.name}".
         exist_ok (bool): whether increment path (increment if False).
@@ -79,6 +81,9 @@ def increment_path(path, exist_ok=False):
         i = [int(m.groups()[0]) for m in matches if m]
         n = max(i) + 1 if i else 2
         return f"{path}{n}"
+
+def encode_multi_class(mask_label, gender_label, age_label) -> int:
+    return mask_label * 6 + gender_label * 3 + age_label
 
 def rand_bbox(size, lam):
     W = size[2]
@@ -106,13 +111,12 @@ def train(data_dir, model_dir, args):
     # -- settings
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
-
+    
     # -- dataset
     dataset_module = getattr(import_module("dataset"), args.dataset)  # default: MaskBaseDataset
     dataset = dataset_module(
         data_dir=data_dir,
     )
-    num_classes = dataset.num_classes  # 18
 
     # -- augmentation
     transform_module = getattr(import_module("dataset"), args.augmentation)  # default: BaseAugmentation
@@ -145,27 +149,28 @@ def train(data_dir, model_dir, args):
     )
 
     # -- model
-    model_module = getattr(import_module("model"), args.model)  # default: ResNet50
-    model = model_module(num_classes=num_classes).to(device)
+    model_module = getattr(import_module("model"), args.model)  # default: BaseModel
+    model = model_module().to(device)
     model = torch.nn.DataParallel(model)
 
-    # # -- model freeze
+    # -- model freeze
     # model.requires_grad_(False)
     # for param, weight in model.named_parameters():
     #     # print(param)
     #     if param in ['module.backbone.head.weight', 'module.backbone.head.bias']:
     #         weight.requires_grad = True
-            
+        
+
     # -- loss & metric
     criterion = create_criterion(args.criterion)  # default: cross_entropy
-    opt_module = getattr(import_module("torch.optim"), args.optimizer)  # default: Adam
+    opt_module = getattr(import_module("torch.optim"), args.optimizer)  # default: SGD
     optimizer = opt_module(
         filter(lambda p: p.requires_grad, model.parameters()),
         lr=args.lr,
         weight_decay=5e-4
     )
-    
 
+    # LR scheduler
     if int(args.lr_decay_step) == 0:
         scheduler = None
     else:
@@ -178,22 +183,23 @@ def train(data_dir, model_dir, args):
 
     best_val_acc = 0
     best_val_loss = np.inf
-    
-    early_stopping = args.patient
-    
     for epoch in range(args.epochs):
-        # for finetuning
-        if epoch > 30:
-            model.requires_grad_(True)
+        # -- model freeze
+        # if epoch > 30:
+        #     model.requires_grad_(True)
 
         # train loop
         model.train()
         loss_value = 0
         matches = 0
+
         for idx, train_batch in enumerate(train_loader):
-            inputs, labels = train_batch
-            inputs = inputs.to(device)
-            labels = labels.to(device)
+            inputs, mask_labels, gender_labels, age_labels = train_batch
+            inputs = inputs.to(device) #(B, C, 320, 256)
+
+            mask_labels = mask_labels.to(device)
+            gender_labels = gender_labels.to(device)
+            age_labels = age_labels.to(device)
 
             r = np.random.rand(1)
 
@@ -203,9 +209,15 @@ def train(data_dir, model_dir, args):
                 lam = np.random.beta(args.beta, args.beta)
                 rand_index = torch.randperm(inputs.size()[0]).cuda()
                 
-                labels_a = labels
-                labels_b = labels[rand_index]
+                mask_labels_a = mask_labels
+                mask_labels_b = mask_labels[rand_index]
                 
+                gender_labels_a = gender_labels
+                gender_labels_b = gender_labels[rand_index]
+
+                age_labels_a = age_labels
+                age_labels_b = age_labels[rand_index]
+
                 bbx1, bby1, bbx2, bby2 = rand_bbox(inputs.size(), lam)
                 inputs[:, :, bbx1:bbx2, bby1:bby2] = inputs[rand_index, :, bbx1:bbx2, bby1:bby2]
                 
@@ -213,22 +225,32 @@ def train(data_dir, model_dir, args):
                 lam = 1 - ((bbx2 - bbx1) * (bby2 - bby1) / (inputs.size()[-1] * inputs.size()[-2]))
                 
                 # compute output
-                outs = model(inputs)
+                mask, gender, age = model(inputs)
 
-                loss = criterion(outs, labels_a) * lam + criterion(outs, labels_b) * (1. - lam)
-                
+                mask_loss = criterion(mask, mask_labels_a) * lam + criterion(mask, mask_labels_b) * (1. - lam)
+                gender_loss = criterion(gender, gender_labels_a) * lam + criterion(gender, gender_labels_b) * (1. - lam)
+                age_loss = criterion(age, age_labels_a) * lam + criterion(age, age_labels_b) * (1. - lam)
+
             else:
-                outs = model(inputs)
-                loss = criterion(outs, labels)
-                
+                mask, gender, age = model(inputs)
+                mask_loss = criterion(mask, mask_labels)
+                gender_loss = criterion(gender, gender_labels)
+                age_loss = criterion(age, age_labels)
+
             optimizer.zero_grad()
-            
-            loss.backward()
+            mask_loss.backward(retain_graph=True)
+            gender_loss.backward(retain_graph=True)
+            age_loss.backward()
+
+            preds_mask = torch.argmax(mask, dim=-1).float()
+            preds_gender = torch.argmax(gender, dim=-1).float()
+            preds_age = torch.argmax(age, dim=-1).float()
+
+            preds = encode_multi_class(preds_mask, preds_gender, preds_age)    
+            labels = encode_multi_class(mask_labels, gender_labels, age_labels)
+                        
             optimizer.step()
-
-            loss_value += loss.item()
-
-            preds = torch.argmax(outs, dim=-1)
+            loss_value += (mask_loss.item() + gender_loss.item() + age_loss.item()) / 3 
             matches += (preds == labels).sum().item()
             if (idx + 1) % args.log_interval == 0:
                 train_loss = loss_value / args.log_interval
@@ -243,12 +265,11 @@ def train(data_dir, model_dir, args):
 
                 loss_value = 0
                 matches = 0
-        
+
         if int(args.lr_decay_step) == 0:
             pass
         else:
             scheduler.step()
-
 
         # val loop
         with torch.no_grad():
@@ -258,9 +279,12 @@ def train(data_dir, model_dir, args):
             val_acc_items = []
             figure = None
             for val_batch in val_loader:
-                inputs, labels = val_batch
+                inputs, mask_labels, gender_labels, age_labels = val_batch
+                
                 inputs = inputs.to(device)
-                labels = labels.to(device)
+                mask_labels = mask_labels.to(device)
+                gender_labels = gender_labels.to(device)
+                age_labels = age_labels.to(device)
 
                 r = np.random.rand(1)
                 if args.beta > 0 and r < args.cutmix_prob:
@@ -268,9 +292,15 @@ def train(data_dir, model_dir, args):
                     lam = np.random.beta(args.beta, args.beta)
                     rand_index = torch.randperm(inputs.size()[0]).cuda()
                     
-                    labels_a = labels
-                    labels_b = labels[rand_index]
+                    mask_labels_a = mask_labels
+                    mask_labels_b = mask_labels[rand_index]
                     
+                    gender_labels_a = gender_labels
+                    gender_labels_b = gender_labels[rand_index]
+
+                    age_labels_a = age_labels
+                    age_labels_b = age_labels[rand_index]
+
                     bbx1, bby1, bbx2, bby2 = rand_bbox(inputs.size(), lam)
                     inputs[:, :, bbx1:bbx2, bby1:bby2] = inputs[rand_index, :, bbx1:bbx2, bby1:bby2]
                     
@@ -278,16 +308,26 @@ def train(data_dir, model_dir, args):
                     lam = 1 - ((bbx2 - bbx1) * (bby2 - bby1) / (inputs.size()[-1] * inputs.size()[-2]))
                     
                     # compute output
-                    outs = model(inputs)
-                    loss = criterion(outs, labels_a) * lam + criterion(outs, labels_b) * (1. - lam)
+                    mask, gender, age = model(inputs)
+
+                    mask_loss = criterion(mask, mask_labels_a) * lam + criterion(mask, mask_labels_b) * (1. - lam)
+                    gender_loss = criterion(gender, gender_labels_a) * lam + criterion(gender, gender_labels_b) * (1. - lam)
+                    age_loss = criterion(age, age_labels_a) * lam + criterion(age, age_labels_b) * (1. - lam)
 
                 else:
-                    outs = model(inputs)
-                    loss = criterion(outs, labels)
-
-                preds = torch.argmax(outs, dim=-1)
-
-                loss_item = criterion(outs, labels).item()
+                    mask, gender, age = model(inputs)
+                    mask_loss = criterion(mask, mask_labels)
+                    gender_loss = criterion(gender, gender_labels)
+                    age_loss = criterion(age, age_labels)
+                
+                preds_mask = torch.argmax(mask, dim=-1)
+                preds_gender = torch.argmax(gender, dim=-1)
+                preds_age = torch.argmax(age, dim=-1)
+                
+                preds = encode_multi_class(preds_mask, preds_gender, preds_age)    
+                labels = encode_multi_class(mask_labels, gender_labels, age_labels)
+                
+                loss_item = (mask_loss.item() + gender_loss.item() + age_loss.item()) / 3
                 acc_item = (labels == preds).sum().item()
                 val_loss_items.append(loss_item)
                 val_acc_items.append(acc_item)
@@ -306,9 +346,9 @@ def train(data_dir, model_dir, args):
                 print(f"New best model for val accuracy : {val_acc:4.2%}! saving the best model..")
                 torch.save(model.module.state_dict(), f"{save_dir}/best.pth")
                 best_val_acc = val_acc
-                early_stopping = args.patient
+                early_stopping = int(args.patient)
             else:
-                early_stopping = early_stopping -1
+                early_stopping = early_stopping - 1
                 print(f"patient_left: {early_stopping}")
                 if early_stopping == 0:
                     torch.save(model.module.state_dict(), f"{save_dir}/last.pth")                    
@@ -322,34 +362,30 @@ def train(data_dir, model_dir, args):
             logger.add_scalar("Val/loss", val_loss, epoch)
             logger.add_scalar("Val/accuracy", val_acc, epoch)
             logger.add_figure("results", figure, epoch)
-            logger.add_scalar("early_stopping_count", early_stopping, epoch)
             print()
-
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     # Data and model checkpoints directories
     parser.add_argument('--seed', type=int, default=42, help='random seed (default: 42)')
-    parser.add_argument('--epochs', type=int, default=200, help='number of epochs to train (default: 200)')
+    parser.add_argument('--epochs', type=int, default=1, help='number of epochs to train (default: 1)')
     parser.add_argument('--dataset', type=str, default='MaskBaseDataset', help='dataset augmentation type (default: MaskBaseDataset)')
     parser.add_argument('--augmentation', type=str, default='BaseAugmentation', help='data augmentation type (default: BaseAugmentation)')
-    parser.add_argument("--resize", nargs="+", type=int, default=[128, 96], help='resize size for image when training')
+    parser.add_argument("--resize", nargs="+", type=list, default=[128, 96], help='resize size for image when training')
     parser.add_argument('--batch_size', type=int, default=64, help='input batch size for training (default: 64)')
     parser.add_argument('--valid_batch_size', type=int, default=1000, help='input batch size for validing (default: 1000)')
-    parser.add_argument('--model', type=str, default='ResNet50', help='model type (default: ResNet50)')
-    parser.add_argument('--optimizer', type=str, default='Adam', help='optimizer type (default: Adam)')
+    parser.add_argument('--model', type=str, default='BaseModel', help='model type (default: BaseModel)')
+    parser.add_argument('--optimizer', type=str, default='SGD', help='optimizer type (default: SGD)')
     parser.add_argument('--lr', type=float, default=1e-3, help='learning rate (default: 1e-3)')
     parser.add_argument('--val_ratio', type=float, default=0.2, help='ratio for validaton (default: 0.2)')
     parser.add_argument('--criterion', type=str, default='cross_entropy', help='criterion type (default: cross_entropy)')
-    parser.add_argument('--lr_decay_step', type=int, default=0, help='learning rate scheduler deacy step (default: 20 -> 0)')
+    parser.add_argument('--lr_decay_step', type=int, default=20, help='learning rate scheduler deacy step (default: 20)')
     parser.add_argument('--log_interval', type=int, default=20, help='how many batches to wait before logging training status')
     parser.add_argument('--name', default='exp', help='model save at {SM_MODEL_DIR}/{name}')
     parser.add_argument('--patient', type=int, default = 15, help='early stopping patient(default: 15)')
     parser.add_argument('--cutmix_prob', type=float, default=0, help='cutmix probability')
     parser.add_argument('--beta', default=0, type=float, help='hyperparameter beta')
-    
     # Container environment
     parser.add_argument('--data_dir', type=str, default=os.environ.get('SM_CHANNEL_TRAIN', '/opt/ml/input/data/train/images'))
     parser.add_argument('--model_dir', type=str, default=os.environ.get('SM_MODEL_DIR', './model'))
