@@ -12,12 +12,12 @@ import matplotlib.pyplot as plt
 import numpy as np
 import torch
 from torch.optim.lr_scheduler import StepLR
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, WeightedRandomSampler
 from torch.utils.tensorboard import SummaryWriter
 
 from dataset import MaskBaseDataset
 from loss import create_criterion
-
+from collections import Counter
 
 def seed_everything(seed):
     torch.manual_seed(seed)
@@ -126,15 +126,39 @@ def train(data_dir, model_dir, args):
 
     # -- data_loader
     train_set, val_set = dataset.split_dataset()
+    print(len(train_set))
+    if args.sampler == True:
+        y_train = []
+        for i in range(len(train_set)):
+            _, y = train_set[i]
+            y_train.append(y)
+        print(len(y_train))
+        print(y_train)
+        num_samples = len(y_train)
+        counter = Counter(y_train)
+        class_weights = [num_samples / counter[i] for i in range(num_classes)]
+        samplerweights = [class_weights[y_train[i]] for i in range(num_samples)]
 
-    train_loader = DataLoader(
-        train_set,
-        batch_size=args.batch_size,
-        num_workers=multiprocessing.cpu_count() // 2,
-        shuffle=True,
-        pin_memory=use_cuda,
-        drop_last=True,
-    )
+        sampler = WeightedRandomSampler(torch.DoubleTensor(samplerweights), int(num_samples))
+        
+        train_loader = DataLoader(
+            train_set,
+            batch_size=args.batch_size,
+            num_workers=multiprocessing.cpu_count() // 2,
+            shuffle=False,
+            pin_memory=use_cuda,
+            drop_last=True,
+            sampler = sampler
+        )
+    else:
+        train_loader = DataLoader(
+            train_set,
+            batch_size=args.batch_size,
+            num_workers=multiprocessing.cpu_count() // 2,
+            shuffle=True,
+            pin_memory=use_cuda,
+            drop_last=True,
+        )
 
     val_loader = DataLoader(
         val_set,
@@ -350,6 +374,7 @@ if __name__ == '__main__':
     parser.add_argument('--patient', type=int, default = 15, help='early stopping patient(default: 15)')
     parser.add_argument('--cutmix_prob', type=float, default=0, help='cutmix probability')
     parser.add_argument('--beta', default=0, type=float, help='hyperparameter beta')
+    parser.add_argument('--sampler', default=False, type=bool, help='using sampler(defalut:False')
     
     # Container environment
     parser.add_argument('--data_dir', type=str, default=os.environ.get('SM_CHANNEL_TRAIN', '/opt/ml/input/data/train/images'))
