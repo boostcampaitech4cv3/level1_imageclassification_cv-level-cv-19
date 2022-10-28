@@ -18,7 +18,7 @@ def load_model(saved_model, num_classes, device):
     # tar = tarfile.open(tarpath, 'r:gz')
     # tar.extractall(path=saved_model)
 
-    model_path = os.path.join(saved_model, 'best.pth')
+    model_path = os.path.join(saved_model, args.model_weight)
     model.load_state_dict(torch.load(model_path, map_location=device))
 
     return model
@@ -72,11 +72,13 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=1000, help='input batch size for validing (default: 1000)')
     parser.add_argument('--resize', type=tuple, default=(96, 128), help='resize size for image when you trained (default: (96, 128))')
     parser.add_argument('--model', type=str, default='ResNet50', help='model type (default: ResNet50)')
+    parser.add_argument('--model_weight', type=str, default='best_acc.pth', help='best_acc/best_f1/last (default: best_acc.pth)')
 
     # Container environment
     parser.add_argument('--data_dir', type=str, default=os.environ.get('SM_CHANNEL_EVAL', '/opt/ml/input/data/eval'))
     parser.add_argument('--model_dir', type=str, default=os.environ.get('SM_CHANNEL_MODEL', './model/exp'))
     parser.add_argument('--output_dir', type=str, default=os.environ.get('SM_OUTPUT_DATA_DIR', './output'))
+    
 
     args = parser.parse_args()
 
