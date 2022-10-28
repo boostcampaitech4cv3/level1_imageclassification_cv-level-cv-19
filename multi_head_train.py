@@ -85,6 +85,23 @@ def increment_path(path, exist_ok=False):
 def encode_multi_class(mask_label, gender_label, age_label) -> int:
     return mask_label * 6 + gender_label * 3 + age_label
 
+def rand_bbox(size, lam):
+    W = size[2]
+    H = size[3]
+    cut_rat = np.sqrt(1. - lam)
+    cut_w = np.int(W * cut_rat)
+    cut_h = np.int(H * cut_rat)
+
+    # uniform
+    cx = np.random.randint(W)
+    cy = np.random.randint(H)
+
+    bbx1 = np.clip(cx - cut_w // 2, 0, W)
+    bby1 = np.clip(cy - cut_h // 2, 0, H)
+    bbx2 = np.clip(cx + cut_w // 2, 0, W)
+    bby2 = np.clip(cy + cut_h // 2, 0, H)
+
+    return bbx1, bby1, bbx2, bby2
 
 def train(data_dir, model_dir, args):
     seed_everything(args.seed)
@@ -178,20 +195,47 @@ def train(data_dir, model_dir, args):
 
         for idx, train_batch in enumerate(train_loader):
             inputs, mask_labels, gender_labels, age_labels = train_batch
-            inputs = inputs.to(device)
+            inputs = inputs.to(device) #(B, C, 320, 256)
 
             mask_labels = mask_labels.to(device)
             gender_labels = gender_labels.to(device)
             age_labels = age_labels.to(device)
 
+            r = np.random.rand(1)
+            if args.beta > 0 and r < args.cutmix_prob:
+                # generate mixed sample
+                lam = np.random.beta(args.beta, args.beta)
+                rand_index = torch.randperm(inputs.size()[0]).cuda()
+                
+                mask_labels_a = mask_labels
+                mask_labels_b = mask_labels[rand_index]
+                
+                gender_labels_a = gender_labels
+                gender_labels_b = gender_labels[rand_index]
+
+                age_labels_a = age_labels
+                age_labels_b = age_labels[rand_index]
+
+                bbx1, bby1, bbx2, bby2 = rand_bbox(inputs.size(), lam)
+                inputs[:, :, bbx1:bbx2, bby1:bby2] = inputs[rand_index, :, bbx1:bbx2, bby1:bby2]
+                
+                # adjust lambda to exactly match pixel ratio
+                lam = 1 - ((bbx2 - bbx1) * (bby2 - bby1) / (inputs.size()[-1] * inputs.size()[-2]))
+                
+                # compute output
+                mask, gender, age = model(inputs)
+
+                mask_loss = criterion(mask, mask_labels_a) * lam + criterion(mask, mask_labels_b) * (1. - lam)
+                gender_loss = criterion(gender, gender_labels_a) * lam + criterion(gender, gender_labels_b) * (1. - lam)
+                age_loss = criterion(age, age_labels_a) * lam + criterion(age, age_labels_b) * (1. - lam)
+
+            else:
+                mask, gender, age = model(inputs)
+                mask_loss = criterion(mask, mask_labels)
+                gender_loss = criterion(gender, gender_labels)
+                age_loss = criterion(age, age_labels)
+
             optimizer.zero_grad()
-
-            mask, gender, age = model(inputs)
-
-            mask_loss = criterion(mask, mask_labels)
-            gender_loss = criterion(gender, gender_labels)
-            age_loss = criterion(age, age_labels)
-
             mask_loss.backward(retain_graph=True)
             gender_loss.backward(retain_graph=True)
             age_loss.backward()
@@ -240,11 +284,41 @@ def train(data_dir, model_dir, args):
                 gender_labels = gender_labels.to(device)
                 age_labels = age_labels.to(device)
 
-                mask, gender, age = model(inputs)
 
-                mask_loss = criterion(mask, mask_labels)
-                gender_loss = criterion(gender, gender_labels)
-                age_loss = criterion(age, age_labels)
+
+
+                if args.beta > 0 and r < args.cutmix_prob:
+                    # generate mixed sample
+                    lam = np.random.beta(args.beta, args.beta)
+                    rand_index = torch.randperm(inputs.size()[0]).cuda()
+                    
+                    mask_labels_a = mask_labels
+                    mask_labels_b = mask_labels[rand_index]
+                    
+                    gender_labels_a = gender_labels
+                    gender_labels_b = gender_labels[rand_index]
+
+                    age_labels_a = age_labels
+                    age_labels_b = age_labels[rand_index]
+
+                    bbx1, bby1, bbx2, bby2 = rand_bbox(inputs.size(), lam)
+                    inputs[:, :, bbx1:bbx2, bby1:bby2] = inputs[rand_index, :, bbx1:bbx2, bby1:bby2]
+                    
+                    # adjust lambda to exactly match pixel ratio
+                    lam = 1 - ((bbx2 - bbx1) * (bby2 - bby1) / (inputs.size()[-1] * inputs.size()[-2]))
+                    
+                    # compute output
+                    mask, gender, age = model(inputs)
+
+                    mask_loss = criterion(mask, mask_labels_a) * lam + criterion(mask, mask_labels_b) * (1. - lam)
+                    gender_loss = criterion(gender, gender_labels_a) * lam + criterion(gender, gender_labels_b) * (1. - lam)
+                    age_loss = criterion(age, age_labels_a) * lam + criterion(age, age_labels_b) * (1. - lam)
+
+                else:
+                    mask, gender, age = model(inputs)
+                    mask_loss = criterion(mask, mask_labels)
+                    gender_loss = criterion(gender, gender_labels)
+                    age_loss = criterion(age, age_labels)
                 
                 preds_mask = torch.argmax(mask, dim=-1)
                 preds_gender = torch.argmax(gender, dim=-1)
@@ -290,7 +364,6 @@ def train(data_dir, model_dir, args):
             logger.add_figure("results", figure, epoch)
             print()
 
-
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
@@ -311,7 +384,8 @@ if __name__ == '__main__':
     parser.add_argument('--log_interval', type=int, default=20, help='how many batches to wait before logging training status')
     parser.add_argument('--name', default='exp', help='model save at {SM_MODEL_DIR}/{name}')
     parser.add_argument('--patient', type=int, default = 15, help='early stopping patient(default: 15)')
-
+    parser.add_argument('--cutmix_prob', type=float, default=0, help='cutmix probability')
+    parser.add_argument('--beta', default=0, type=float, help='hyperparameter beta')
     # Container environment
     parser.add_argument('--data_dir', type=str, default=os.environ.get('SM_CHANNEL_TRAIN', '/opt/ml/input/data/train/images'))
     parser.add_argument('--model_dir', type=str, default=os.environ.get('SM_MODEL_DIR', './model'))
