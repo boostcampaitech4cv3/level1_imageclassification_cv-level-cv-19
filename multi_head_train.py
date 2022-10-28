@@ -137,13 +137,13 @@ def train(data_dir, model_dir, args):
     model = torch.nn.DataParallel(model)
 
     # -- model freeze
-    
     # model.requires_grad_(False)
     # for param, weight in model.named_parameters():
     #     # print(param)
     #     if param in ['module.backbone.head.weight', 'module.backbone.head.bias']:
     #         weight.requires_grad = True
         
+
     # -- loss & metric
     criterion = create_criterion(args.criterion)  # default: cross_entropy
     opt_module = getattr(import_module("torch.optim"), args.optimizer)  # default: SGD
@@ -167,8 +167,9 @@ def train(data_dir, model_dir, args):
     best_val_acc = 0
     best_val_loss = np.inf
     for epoch in range(args.epochs):
-        if epoch > 30:
-            model.requires_grad_(True)
+        # -- model freeze
+        # if epoch > 30:
+        #     model.requires_grad_(True)
 
         # train loop
         model.train()
