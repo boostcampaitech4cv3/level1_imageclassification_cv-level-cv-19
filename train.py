@@ -22,10 +22,12 @@ import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
 
+# 경고 off
 import warnings
 warnings.filterwarnings(action='ignore')
 
 
+# 재현성
 def seed_everything(seed):
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
@@ -41,6 +43,7 @@ def get_lr(optimizer):
         return param_group['lr']
 
 
+# tensorboard에 올리는 이미지 grid 생성
 def grid_image(np_images, gts, preds, n=16, shuffle=False):
     batch_size = np_images.shape[0]
     assert n <= batch_size
@@ -70,7 +73,7 @@ def grid_image(np_images, gts, preds, n=16, shuffle=False):
 
     return figure
 
-
+# 자동 경로 추가
 def increment_path(path, exist_ok=False):
     """ Automatically increment path, i.e. runs/exp --> runs/exp0, runs/exp1 etc.
     Args:
@@ -87,6 +90,7 @@ def increment_path(path, exist_ok=False):
         n = max(i) + 1 if i else 2
         return f"{path}{n}"
 
+# cutmix
 def rand_bbox(size, lam):
     W = size[2]
     H = size[3]
@@ -105,6 +109,7 @@ def rand_bbox(size, lam):
 
     return bbx1, bby1, bbx2, bby2
 
+# confusion matrix
 def plot_confusion_matrix(confusion_matrix,confusion_matrix_mask, confusion_matrix_gender, confusion_matrix_age, dir_path):
     fig_all, ax = plt.subplots(figsize=(15, 15))
     sns.heatmap(confusion_matrix, linewidths=1, annot=True, ax=ax, fmt='g', cmap= "Blues", cbar = False)
@@ -168,8 +173,9 @@ def train(data_dir, model_dir, args):
     )
     dataset.set_transform(transform)
 
-    # -- data_loader
+    # -- data_loader & sampler
     train_set, val_set = dataset.split_dataset()
+    
     
     if args.sampler == "None":
         sampler_flag = (True, None)
@@ -216,7 +222,7 @@ def train(data_dir, model_dir, args):
         weight_decay=5e-4
     )
     
-
+    # --scheduler
     if int(args.lr_decay_step) == 0:
         scheduler = None
     else:
@@ -296,6 +302,7 @@ def train(data_dir, model_dir, args):
                 loss_value = 0
                 matches = 0
         
+        # --scheduler
         if int(args.lr_decay_step) == 0:
             pass
         else:
@@ -322,7 +329,7 @@ def train(data_dir, model_dir, args):
                 inputs, labels = val_batch
                 inputs = inputs.to(device)
                 labels = labels.to(device)
-
+                
                 r = np.random.rand(1)
                 if args.beta > 0 and r < args.cutmix_prob:
                     # generate mixed sample
@@ -346,8 +353,8 @@ def train(data_dir, model_dir, args):
                     outs = model(inputs)
                     loss = criterion(outs, labels)
 
+                # -- calculate metrics(loss, acc, f1) & confusion matrix
                 preds = torch.argmax(outs, dim=-1)
-
                 loss_item = criterion(outs, labels).item()
                 acc_item = (labels == preds).sum().item()
                 val_loss_items.append(loss_item)
