@@ -1,6 +1,5 @@
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision.models import swin_b
 
 class BaseModel(nn.Module):
     def __init__(self, num_classes):
@@ -146,6 +145,30 @@ class ViT_B_16(nn.Module):
             p.requires_grad=True
         self.backbone.head = nn.Linear(768, num_classes)
 
+    def forward(self, x):
+        output = self.backbone(x)
+        return output
+
+
+# densenet 121
+import torch
+class DenseNet121(nn.Module):
+    def __init__(self, num_classes = 18):
+        super().__init__()
+        self.backbone = torch.hub.load('pytorch/vision:v0.10.0', 'densenet121', pretrained=True)
+        self.classifier = nn.Linear(1024,num_classes)
+    
+    def forward(self, x):
+        output = self.backbone(x)
+        return output
+    
+# densenet201
+class DenseNet201(nn.Module):
+    def __init__(self, num_classes = 18):
+        super().__init__()
+        self.backbone = torch.hub.load('pytorch/vision:v0.10.0', 'densenet201', pretrained=True)
+        self.classifier = nn.Linear(1920,num_classes)
+    
     def forward(self, x):
         output = self.backbone(x)
         return output
