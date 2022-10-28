@@ -274,7 +274,7 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=200, help='number of epochs to train (default: 200)')
     parser.add_argument('--dataset', type=str, default='MaskBaseDataset', help='dataset augmentation type (default: MaskBaseDataset)')
     parser.add_argument('--augmentation', type=str, default='BaseAugmentation', help='data augmentation type (default: BaseAugmentation)')
-    parser.add_argument("--resize", nargs="+", type=list, default=[128, 96], help='resize size for image when training')
+    parser.add_argument("--resize", nargs="+", type=int, default=[128, 96], help='resize size for image when training')
     parser.add_argument('--batch_size', type=int, default=64, help='input batch size for training (default: 64)')
     parser.add_argument('--valid_batch_size', type=int, default=1000, help='input batch size for validing (default: 1000)')
     parser.add_argument('--model', type=str, default='ResNet50', help='model type (default: ResNet50)')
@@ -285,7 +285,7 @@ if __name__ == '__main__':
     parser.add_argument('--lr_decay_step', type=int, default=0, help='learning rate scheduler deacy step (default: 20 -> 0)')
     parser.add_argument('--log_interval', type=int, default=20, help='how many batches to wait before logging training status')
     parser.add_argument('--name', default='exp', help='model save at {SM_MODEL_DIR}/{name}')
-    parser.add_argument('--patient', default = 15, help='early stopping patient(default: 15)')
+    parser.add_argument('--patient', type=int, default = 15, help='early stopping patient(default: 15)')
 
     # Container environment
     parser.add_argument('--data_dir', type=str, default=os.environ.get('SM_CHANNEL_TRAIN', '/opt/ml/input/data/train/images'))
