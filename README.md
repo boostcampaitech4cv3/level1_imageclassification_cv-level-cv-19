@@ -5,13 +5,14 @@ level1_imageclassification_cv-level-cv-19 created by GitHub Classroom
 
 # Result
 |idx|누가|언제|구조|Backbone|Classifier|Data-augmentation|loss|optim|epochs|seed|batch|lr|test_acc|test_F1|val_acc|val_F1|
-|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 |0|Gu|10.26| 1 |pretrained ResNet50|Backbone's Last fc layer|-|CE|SGD|50|42|64|1e-3|54.93|0.50|-|-|
 |1|Gu|10.26| 1 |pretrained ResNext101|Backbone's Last fc layer|-|CE|SGD|50|42|64|1e-3|62.46|0.55|-|-|
 |2|TJ|10.27| AlexNet | AlexNet |AlexNet fc layer|-|CE|Adam|25|42|64|1e-3|35|0.24|-|-|
 |3|GUN|10.27|mask,gender,age 따로 모델 훈련|pretrained EfficientNet|fc layer 추가|-|CE|Adam|1|42|128|1e-3|38.2540|0.2223|-|-|
 |4|YR|10.27| 1model | basemodel| basemodel|-| CE|Adam|20|42|64|1e-3|42.68|0.28|-|-|
 |5|Gu|10.27| 1 | SwinT_b |Backbone's Last fc layer|-|CE|SGD|100|42|64|1e-3|51.00|0.3850|-|-|
+|6|GH|10.27| 1 | DenseNet |Backbone's Last fc layer|-|CE|Adam|200|42|64|1e-3|-|-|-|-|
 
 <br>
 <br>
@@ -24,6 +25,24 @@ level1_imageclassification_cv-level-cv-19 created by GitHub Classroom
 
 </div>
 </details>
+<br>
+<br>
+
+<b>Basic parameter setting</b>
+
+seed: 42  
+epochs: 200 (early stopping)  
+dataset:  MaskBaseDataset  
+data_augmentation: BaseAugmentation  
+batch_size: 64  
+backbone: ResNet50  
+learning_rate: 0.001  
+optimizer: Adam  
+lr_decay_step :0   
+criterion: CE  
+classifier: replace fc layer of pretrianed model with 1-layer Linear  
+patient: (early stopping count) 15 
+freeze: freeze except classifier
 
 
 <br>
