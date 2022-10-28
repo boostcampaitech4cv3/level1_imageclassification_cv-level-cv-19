@@ -130,15 +130,15 @@ def train(data_dir, model_dir, args):
 
     # -- model
     model_module = getattr(import_module("model"), args.model)  # default: ResNet50
-    model = model_module().to(device)
+    model = model_module(num_classes=num_classes).to(device)
     model = torch.nn.DataParallel(model)
 
-    # -- model freeze
-    model.requires_grad_(False)
-    for param, weight in model.named_parameters():
-        # print(param)
-        if param in ['module.backbone.head.weight', 'module.backbone.head.bias']:
-            weight.requires_grad = True
+    # # -- model freeze
+    # model.requires_grad_(False)
+    # for param, weight in model.named_parameters():
+    #     # print(param)
+    #     if param in ['module.backbone.head.weight', 'module.backbone.head.bias']:
+    #         weight.requires_grad = True
             
     # -- loss & metric
     criterion = create_criterion(args.criterion)  # default: cross_entropy
