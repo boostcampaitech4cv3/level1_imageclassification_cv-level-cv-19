@@ -11,7 +11,8 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from torch.optim.lr_scheduler import StepLR, CosineAnnealingLR, ReduceLROnPlateau
+
+from scheduler import scheduler_module
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
@@ -223,18 +224,10 @@ def train(data_dir, model_dir, args):
         weight_decay=5e-4
     )
     
-    # --scheduler
+    
 
-    schduler_entrypoints = {
-        'StepLR': StepLR(optimizer, args.lr_decay_step, gamma=0.5),
-        'ReduceLROnPlateau': ReduceLROnPlateau(optimizer, factor=0.1, patience=10),
-        'CosineAnnealingLR': CosineAnnealingLR(optimizer, T_max=2, eta_min=0.)
-    }
-
-    if int(args.lr_decay_step) == 0:
-        scheduler = None
-    else:
-        scheduler = schduler_entrypoints[args.scheduler]
+    if args.scheduler != "None":
+        scheduler = scheduler_module.get_scheduler(scheduler_module,args.scheduler, optimizer)
 
     # -- logging
     logger = SummaryWriter(log_dir=save_dir)
@@ -248,9 +241,6 @@ def train(data_dir, model_dir, args):
     early_stopping = args.patient
     
     for epoch in tqdm(range(args.epochs)):
-        # for finetuning
-        if epoch > 30:
-            model.requires_grad_(True)
 
         # train loop
         model.train()
@@ -306,15 +296,11 @@ def train(data_dir, model_dir, args):
                 )
                 logger.add_scalar("Train/loss", train_loss, epoch * len(train_loader) + idx)
                 logger.add_scalar("Train/accuracy", train_acc, epoch * len(train_loader) + idx)
+                logger.add_scalar("lr", current_lr, epoch)
 
                 loss_value = 0
                 matches = 0
         
-        # --scheduler
-        if int(args.lr_decay_step) == 0:
-            pass
-        else:
-            scheduler.step()
 
 
         # val loop
@@ -413,6 +399,13 @@ def train(data_dir, model_dir, args):
             logger.add_scalar("Val/f1_score", f1_score, epoch)
             
             print()
+        
+        # --scheduler
+        if args.scheduler != "None":
+            if scheduler.__class__.__name__ == "ReduceLROnPlateau":
+                scheduler.step(val_loss) # ReduceLROnPlateau는 추적할 metric을 넣어서 step을 수행한다
+            else:
+                scheduler.step()
 
 
 
@@ -432,14 +425,14 @@ if __name__ == '__main__':
     parser.add_argument('--lr', type=float, default=1e-3, help='learning rate (default: 1e-3)')
     parser.add_argument('--val_ratio', type=float, default=0.2, help='ratio for validaton (default: 0.2)')
     parser.add_argument('--criterion', type=str, default='cross_entropy', help='criterion type (default: cross_entropy)')
-    parser.add_argument('--lr_decay_step', type=int, default=0, help='learning rate scheduler deacy step (default: 20 -> 0)')
     parser.add_argument('--log_interval', type=int, default=20, help='how many batches to wait before logging training status')
     parser.add_argument('--name', default='exp', help='model save at {SM_MODEL_DIR}/{name}')
     parser.add_argument('--patient', type=int, default = 15, help='early stopping patient(default: 15)')
     parser.add_argument('--cutmix_prob', type=float, default=0, help='cutmix probability')
     parser.add_argument('--beta', type=float, default=0, help='hyperparameter beta')
     parser.add_argument('--sampler', type=str, default='None', help='sampler for imblanced data (default:None), samplers in sampler.py')
-    parser.add_argument('--scheduler', default='StepLR', type=str, help='scheduler(default:StepLR')
+    parser.add_argument('--scheduler', default='None', type=str, help='scheduler(default:None), scheduler list in scheduler.py')
+    
     # Container environment
     parser.add_argument('--data_dir', type=str, default=os.environ.get('SM_CHANNEL_TRAIN', '/opt/ml/input/data/train/images'))
     parser.add_argument('--model_dir', type=str, default=os.environ.get('SM_MODEL_DIR', './model'))
