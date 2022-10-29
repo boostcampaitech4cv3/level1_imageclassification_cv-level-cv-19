@@ -172,3 +172,18 @@ class DenseNet201(nn.Module):
     def forward(self, x):
         output = self.backbone(x)
         return output
+
+# EfficientNet_B2
+from torchvision.models import efficientnet_b2
+class EfficientNet_B2(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        self.backbone = efficientnet_b2(weights='DEFAULT')
+        self.backbone.classifier = nn.Sequential(
+            nn.Dropout(p=0.3, inplace=True),
+            nn.Linear(1408, num_classes)
+        )
+
+    def forward(self, x):
+        output = self.backbone(x)
+        return output
