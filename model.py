@@ -155,7 +155,7 @@ import torch
 class DenseNet121(nn.Module):
     def __init__(self, num_classes = 18):
         super().__init__()
-        self.backbone = torch.hub.load('pytorch/vision:v0.8.2', 'densenet121', pretrained=True)
+        self.backbone = torch.hub.load('pytorch/vision:v0.14.0', 'densenet121', pretrained=True)
         fc1 = nn.Linear(1024,512)
         self.backbone.classifier = fc1
         for parameter in self.backbone.parameters():
@@ -166,7 +166,41 @@ class DenseNet121(nn.Module):
         self.bn2 = nn.BatchNorm1d(256)
         self.classifier3 = nn.Linear(256, 128)
         self.bn3 = nn.BatchNorm1d(128)
-        self.classifier4 = nn.Linear(128, 18)
+        self.classifier4 = nn.Linear(128, num_classes)
+        self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(p=0.5)
+    
+    def forward(self, x):
+        x = self.backbone(x)
+        x = self.relu(x)
+        x = self.bn1(x)
+        x = self.dropout(x)
+        x = self.classifier2(x)
+        x = self.relu(x)
+        x = self.bn2(x)
+        x = self.dropout(x)
+        x = self.classifier3(x)
+        x = self.relu(x)
+        x = self.bn3(x)
+        output = self.classifier4(x)
+        return output
+    
+# densenet201
+class DenseNet201(nn.Module):
+    def __init__(self, num_classes = 18):
+        super().__init__()
+        self.backbone = torch.hub.load('pytorch/vision:v0.14.0', 'densenet201', pretrained=True)
+        fc1 = nn.Linear(1920,1024)
+        self.backbone.classifier = fc1
+        for parameter in self.backbone.parameters():
+            parameter.requires_grad = False
+        self.backbone.classifier.weight.requires_grad = True
+        self.bn1 = nn.BatchNorm1d(1024)
+        self.classifier2 = nn.Linear(1024, 512)
+        self.bn2 = nn.BatchNorm1d(512)
+        self.classifier3 = nn.Linear(512, 128)
+        self.bn3 = nn.BatchNorm1d(128)
+        self.classifier4 = nn.Linear(128, num_classes)
         self.relu = nn.ReLU()
     
     def forward(self, x):
@@ -180,17 +214,6 @@ class DenseNet121(nn.Module):
         x = self.relu(x)
         x = self.bn3(x)
         output = self.classifier4(x)
-        return output
-    
-# densenet201
-class DenseNet201(nn.Module):
-    def __init__(self, num_classes = 18):
-        super().__init__()
-        self.backbone = torch.hub.load('pytorch/vision:v0.8.2', 'densenet201', pretrained=True)
-        self.classifier = nn.Linear(1920,num_classes)
-    
-    def forward(self, x):
-        output = self.backbone(x)
         return output
 
 # efficientNetb0
