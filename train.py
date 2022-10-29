@@ -370,6 +370,8 @@ def train(data_dir, model_dir, args):
             if val_acc > best_val_acc:
                 print(f"New best model for val accuracy : {val_acc:4.2%}! saving the best model..")
                 torch.save(model.module.state_dict(), f"{save_dir}/best_acc.pth")
+                if args.model_save:
+                    torch.save(model, f"{save_dir}/best_acc.pt")
                 best_val_acc = val_acc
                 early_stopping = args.patient
                 flag = False
@@ -377,6 +379,8 @@ def train(data_dir, model_dir, args):
             if f1_score > best_f1_score:
                 print(f"New best model for f1 score : {f1_score:4.4}! saving the best model..")
                 torch.save(model.module.state_dict(), f"{save_dir}/best_f1.pth")
+                if args.model_save:
+                    torch.save(model, f"{save_dir}/best_f1.pt")
                 best_f1_score = f1_score
                 early_stopping = args.patient
                 flag = False
@@ -385,7 +389,9 @@ def train(data_dir, model_dir, args):
                 early_stopping = early_stopping -1
                 print(f"patient_left: {early_stopping}")
                 if early_stopping == 0:
-                    torch.save(model.module.state_dict(), f"{save_dir}/last.pth")                    
+                    torch.save(model.module.state_dict(), f"{save_dir}/last.pth")
+                    if args.model_save:
+                        torch.save(model, f"{save_dir}/last.pt")                 
                     print("early_stopping, save last model as last.pth")
                     break                    
             print(
@@ -431,7 +437,8 @@ if __name__ == '__main__':
     parser.add_argument('--cutmix_prob', type=float, default=0, help='cutmix probability')
     parser.add_argument('--beta', type=float, default=0, help='hyperparameter beta')
     parser.add_argument('--sampler', type=str, default='None', help='sampler for imblanced data (default:None), samplers in sampler.py')
-    parser.add_argument('--scheduler', default='None', type=str, help='scheduler(default:None), scheduler list in scheduler.py')
+    parser.add_argument('--scheduler', type=str, default='None', help='scheduler(default:None), scheduler list in scheduler.py')
+    parser.add_argument('--model_save',type=bool, default=False, help='save model architecture with state_dict')
     
     # Container environment
     parser.add_argument('--data_dir', type=str, default=os.environ.get('SM_CHANNEL_TRAIN', '/opt/ml/input/data/train/images'))
