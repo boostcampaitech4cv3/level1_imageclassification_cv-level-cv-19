@@ -22,6 +22,7 @@ from torchmetrics import ConfusionMatrix, F1Score
 import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
+from tqdm import tqdm
 
 # 경고 off
 import warnings
@@ -239,7 +240,7 @@ def train(data_dir, model_dir, args):
     
     early_stopping = args.patient
     
-    for epoch in range(args.epochs):
+    for epoch in tqdm(range(args.epochs)):
 
         # train loop
         model.train()
