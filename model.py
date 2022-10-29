@@ -176,7 +176,7 @@ class DenseNet201(nn.Module):
 # efficientNetb0
 class EfficientNet_B0(nn.Module):
     def __init__(self,num_classes = 18):
-        super(EfficientNet, self).__init__()
+        super(EfficientNet_B0, self).__init__()
         self.backbone = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', 'nvidia_efficientnet_b0', pretrained=True)
         self.backbone.fc = nn.Linear(1280, num_classes)
 
@@ -216,5 +216,3 @@ class MultiHeadResNext50(nn.Module):
         gender = self.gender_classifier(x)
         age = self.age_classifier(x)
         return mask, gender, age
-
-A = MultiHeadResNext50()
