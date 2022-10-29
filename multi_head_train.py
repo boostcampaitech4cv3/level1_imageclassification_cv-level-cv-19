@@ -219,7 +219,10 @@ def train(data_dir, model_dir, args):
         
 
     # -- loss & metric
-    criterion = create_criterion(args.criterion)  # default: cross_entropy
+    mask_criterion = create_criterion(args.mask_criterion)  # default: cross_entropy
+    gender_criterion = create_criterion(args.gender_criterion)  # default: cross_entropy
+    age_criterion = create_criterion(args.age_criterion)  # default: cross_entropy
+    
     opt_module = getattr(import_module("torch.optim"), args.optimizer)  # default: SGD
     optimizer = opt_module(
         filter(lambda p: p.requires_grad, model.parameters()),
@@ -284,15 +287,15 @@ def train(data_dir, model_dir, args):
                 # compute output
                 mask, gender, age = model(inputs)
 
-                mask_loss = criterion(mask, mask_labels_a) * lam + criterion(mask, mask_labels_b) * (1. - lam)
-                gender_loss = criterion(gender, gender_labels_a) * lam + criterion(gender, gender_labels_b) * (1. - lam)
-                age_loss = criterion(age, age_labels_a) * lam + criterion(age, age_labels_b) * (1. - lam)
+                mask_loss = mask_criterion(mask, mask_labels_a) * lam + mask_criterion(mask, mask_labels_b) * (1. - lam)
+                gender_loss = gender_criterion(gender, gender_labels_a) * lam + gender_criterion(gender, gender_labels_b) * (1. - lam)
+                age_loss = age_criterion(age, age_labels_a) * lam + age_criterion(age, age_labels_b) * (1. - lam)
 
             else:
                 mask, gender, age = model(inputs)
-                mask_loss = criterion(mask, mask_labels)
-                gender_loss = criterion(gender, gender_labels)
-                age_loss = criterion(age, age_labels)
+                mask_loss = mask_criterion(mask, mask_labels)
+                gender_loss = gender_criterion(gender, gender_labels)
+                age_loss = age_criterion(age, age_labels)
 
             optimizer.zero_grad()
             mask_loss.backward(retain_graph=True)
@@ -323,11 +326,6 @@ def train(data_dir, model_dir, args):
                 loss_value = 0
                 matches = 0
 
-        if int(args.lr_decay_step) == 0:
-            pass
-        else:
-            scheduler.step()
-
         # val loop
         with torch.no_grad():
             print("Calculating validation results...")
@@ -354,9 +352,9 @@ def train(data_dir, model_dir, args):
 
                 r = np.random.rand(1)
                 mask, gender, age = model(inputs)
-                mask_loss = criterion(mask, mask_labels)
-                gender_loss = criterion(gender, gender_labels)
-                age_loss = criterion(age, age_labels)
+                mask_loss = mask_criterion(mask, mask_labels)
+                gender_loss = gender_criterion(gender, gender_labels)
+                age_loss = age_criterion(age, age_labels)
                 
                 preds_mask = torch.argmax(mask, dim=-1)
                 preds_gender = torch.argmax(gender, dim=-1)
@@ -433,6 +431,7 @@ def train(data_dir, model_dir, args):
             logger.add_figure("results", figure, epoch)
             logger.add_figure("val_confusion_matrix_all",confusion_all_fig, epoch)
             logger.add_figure("val_confusion_matrix_sep",confusion_sep_fig, epoch)
+        
         if args.scheduler != "None":
             if scheduler.__class__.__name__ == "ReduceLROnPlateau":
                 scheduler.step(val_loss) # ReduceLROnPlateau는 추적할 metric을 넣어서 step을 수행한다
@@ -455,15 +454,16 @@ if __name__ == '__main__':
     parser.add_argument('--optimizer', type=str, default='SGD', help='optimizer type (default: SGD)')
     parser.add_argument('--lr', type=float, default=1e-3, help='learning rate (default: 1e-3)')
     parser.add_argument('--val_ratio', type=float, default=0.2, help='ratio for validaton (default: 0.2)')
-    parser.add_argument('--criterion', type=str, default='cross_entropy', help='criterion type (default: cross_entropy)')
-    parser.add_argument('--lr_decay_step', type=int, default=20, help='learning rate scheduler deacy step (default: 20)')
+    parser.add_argument('--mask_criterion', type=str, default='f1_3', help='criterion type (default: cross_entropy)')
+    parser.add_argument('--gender_criterion', type=str, default='f1_2', help='criterion type (default: cross_entropy)')
+    parser.add_argument('--age_criterion', type=str, default='f1_3', help='criterion type (default: cross_entropy)')
     parser.add_argument('--log_interval', type=int, default=20, help='how many batches to wait before logging training status')
     parser.add_argument('--name', default='exp', help='model save at {SM_MODEL_DIR}/{name}')
     parser.add_argument('--patient', type=int, default = 15, help='early stopping patient(default: 15)')
     parser.add_argument('--cutmix_prob', type=float, default=0, help='cutmix probability')
     parser.add_argument('--beta', default=0, type=float, help='hyperparameter beta')
     parser.add_argument('--sampler', type=str, default='None', help='sampler for imblanced data (default:None), samplers in sampler.py')
-    parser.add_argument('--scheduler', default='StepLR', type=str, help='scheduler(default:StepLR')
+    parser.add_argument('--scheduler', default='None', type=str, help='scheduler(default:None), scheduler list in scheduler.py')
  # Container environment
     parser.add_argument('--data_dir', type=str, default=os.environ.get('SM_CHANNEL_TRAIN', '/opt/ml/input/data/train/images'))
     parser.add_argument('--model_dir', type=str, default=os.environ.get('SM_MODEL_DIR', './model'))
