@@ -1,6 +1,5 @@
 import torch.nn as nn
 import torch.nn.functional as F
-from torchvision.models import swin_b
 
 class BaseModel(nn.Module):
     def __init__(self, num_classes):
@@ -33,12 +32,12 @@ class BaseModel(nn.Module):
         return self.fc(x)
 
 # resnet 50
-from torchvision.models import resnet50
+from torchvision.models import resnet50, ResNet50_Weights
 class ResNet50(nn.Module):
     def __init__(self, num_classes):
         super().__init__()
 
-        self.backbone = resnet50(pretrained=True)
+        self.backbone = resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)
         self.backbone.fc = nn.Linear(2048, num_classes)
         
         # freeze except classifier
@@ -145,6 +144,45 @@ class ViT_B_16(nn.Module):
         for p in self.backbone.parameters():
             p.requires_grad=True
         self.backbone.head = nn.Linear(768, num_classes)
+
+    def forward(self, x):
+        output = self.backbone(x)
+        return output
+
+
+# densenet 121
+import torch
+class DenseNet121(nn.Module):
+    def __init__(self, num_classes = 18):
+        super().__init__()
+        self.backbone = torch.hub.load('pytorch/vision:v0.10.0', 'densenet121', pretrained=True)
+        self.classifier = nn.Linear(1024,num_classes)
+    
+    def forward(self, x):
+        output = self.backbone(x)
+        return output
+    
+# densenet201
+class DenseNet201(nn.Module):
+    def __init__(self, num_classes = 18):
+        super().__init__()
+        self.backbone = torch.hub.load('pytorch/vision:v0.10.0', 'densenet201', pretrained=True)
+        self.classifier = nn.Linear(1920,num_classes)
+    
+    def forward(self, x):
+        output = self.backbone(x)
+        return output
+
+# EfficientNet_B2
+from torchvision.models import efficientnet_b2
+class EfficientNet_B2(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        self.backbone = efficientnet_b2(weights='DEFAULT')
+        self.backbone.classifier = nn.Sequential(
+            nn.Dropout(p=0.3, inplace=True),
+            nn.Linear(1408, num_classes)
+        )
 
     def forward(self, x):
         output = self.backbone(x)
