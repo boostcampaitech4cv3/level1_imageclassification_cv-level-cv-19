@@ -172,3 +172,15 @@ class DenseNet201(nn.Module):
     def forward(self, x):
         output = self.backbone(x)
         return output
+
+
+# efficientNet
+class EfficientNet(nn.Module):
+    def __init__(self,num_classes = 18):
+        super(EfficientNet, self).__init__()
+        self.backbone = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', 'nvidia_efficientnet_b0', pretrained=True)
+        self.backbone.fc = nn.Linear(1280, num_classes)
+
+    def forward(self, x):
+        output = self.backbone(x)
+        return output
