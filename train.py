@@ -112,7 +112,7 @@ def rand_bbox(size, lam):
     return bbx1, bby1, bbx2, bby2
 
 # confusion matrix
-def plot_confusion_matrix(confusion_matrix,confusion_matrix_mask, confusion_matrix_gender, confusion_matrix_age, dir_path):
+def plot_confusion_matrix(confusion_matrix,confusion_matrix_mask, confusion_matrix_gender, confusion_matrix_age):
     fig_all, ax = plt.subplots(figsize=(15, 15))
     sns.heatmap(confusion_matrix, linewidths=1, annot=True, ax=ax, fmt='g', cmap= "Blues", cbar = False)
     ax.axes.set_xlabel('Predicted labels')
@@ -125,7 +125,6 @@ def plot_confusion_matrix(confusion_matrix,confusion_matrix_mask, confusion_matr
 
     ax.axes.xaxis.set_ticklabels([*tmp])
     ax.axes.yaxis.set_ticklabels([*tmp])
-    fig_all.savefig(dir_path+"/18_class_confusion_matrix.png")
     
     fig, ax = plt.subplots(ncols=3, figsize=(15, 5))
     sns.heatmap(confusion_matrix_mask, linewidths=1, annot=True, ax=ax[0], fmt='g', cmap= "Blues", cbar = False)
@@ -146,7 +145,7 @@ def plot_confusion_matrix(confusion_matrix,confusion_matrix_mask, confusion_matr
     ax[2].axes.xaxis.set_ticklabels(['<30', '>=30 and < 60', '>=60'])
     ax[2].axes.yaxis.set_ticklabels(['<30', '>=30 and < 60', '>=60'])
     
-    fig.savefig(dir_path+"/sep_class_confusion_matrix.png")  
+      
     
     return fig_all, fig
 
@@ -356,7 +355,7 @@ def train(data_dir, model_dir, args):
                 preds_expand = torch.cat((preds_expand, preds.detach().cpu()),-1)
                 labels_expand = torch.cat((labels_expand, labels.detach().cpu()),-1)
                         
-            confusion_all_fig, confusion_sep_fig = plot_confusion_matrix(confusion_matrix,confusion_matrix_mask, confusion_matrix_gender, confusion_matrix_age , save_dir)    
+            confusion_all_fig, confusion_sep_fig = plot_confusion_matrix(confusion_matrix,confusion_matrix_mask, confusion_matrix_gender, confusion_matrix_age)    
             logger.add_figure("val_confusion_matrix_all",confusion_all_fig, epoch)
             logger.add_figure("val_confusion_matrix_sep",confusion_sep_fig, epoch)
             
@@ -384,6 +383,10 @@ def train(data_dir, model_dir, args):
                 best_f1_score = f1_score
                 early_stopping = args.patient
                 flag = False
+            
+            if flag == False:
+                confusion_all_fig.savefig(save_dir+"/best_18_class_confusion_matrix.png")
+                confusion_sep_fig.savefig(save_dir+"/best_sep_class_confusion_matrix.png")
                 
             if flag:
                 early_stopping = early_stopping -1
