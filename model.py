@@ -187,3 +187,23 @@ class EfficientNet_B2(nn.Module):
     def forward(self, x):
         output = self.backbone(x)
         return output
+
+
+from torchvision.models import resnext50_32x4d
+class MultiHeadResNext50(nn.Module):
+    def __init__(self):
+        super().__init__()
+        backbone = resnext50_32x4d(weights='IMAGENET1K_V1')
+        self.features = nn.Sequential(*list(backbone.children())[:-1], nn.Flatten())
+        self.mask_classifier = nn.Sequential(nn.Linear(2048, 3))
+        self.gender_classifier = nn.Sequential(nn.Linear(2048, 2))
+        self.age_classifier = nn.Sequential(nn.Linear(2048, 3))
+ 
+    def forward(self, x):
+        x = self.features(x)
+        mask = self.mask_classifier(x)
+        gender = self.gender_classifier(x)
+        age = self.age_classifier(x)
+        return mask, gender, age
+
+A = MultiHeadResNext50()
