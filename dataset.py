@@ -87,11 +87,11 @@ class CustomAugmentation:
 class GuCustomAugmentation:
     def __init__(self, resize, mean, std, **args):
         self.transform = Compose([
-            # CenterCrop((320, 256)),
+            RandomRotation(degrees=(-10,10)),
+            CenterCrop((320, 256)),
             Resize(resize, Image.BILINEAR),
             ColorJitter(0.1, 0.1, 0.1, 0.1),
             RandomHorizontalFlip(p=0.5),
-            RandomRotation(degrees=(-10,10)),
             ToTensor(),
             Normalize(mean=mean, std=std),
             AddRandomGaussianNoise()
