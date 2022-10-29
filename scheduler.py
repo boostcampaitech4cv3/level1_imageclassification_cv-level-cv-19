@@ -4,6 +4,9 @@ from torch.optim.lr_scheduler import StepLR, CosineAnnealingLR, ReduceLROnPlatea
 
 
 class scheduler_module():
+    
+    # scheduler dict의 이름을 --scheduler 에 인자값으로 넣으면 사용가능
+    # scheduler_dict안의 변수들을 바꿔서 customizing
     scheduler_dict = {
             ## torch.optim.lr_scheduler ##
             'StepLR': {'step_size': 1, 'gamma': 0.5}, # 각 step_size마다 gamma 만큼 감소
