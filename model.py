@@ -105,7 +105,7 @@ class AlexNet(nn.Module):
         x = self.classifier(x)
         return x
 
-'''# Swin_b
+# Swin_b
 from torchvision.models import swin_b
 class Swin_b(nn.Module):
     def __init__(self, num_classes):
@@ -115,9 +115,9 @@ class Swin_b(nn.Module):
 
     def forward(self, x):
         x = self.backbone(x)
-        return x'''
+        return x
 
-'''# Multiple Output Model Template
+# Multiple Output Model Template
 from torchvision.models import resnext101_64x4d
 class MultiHeadBaseModel(nn.Module):
     def __init__(self):
@@ -133,9 +133,9 @@ class MultiHeadBaseModel(nn.Module):
         mask = self.mask_classifier(x)
         gender = self.gender_classifier(x)
         age = self.age_classifier(x)
-        return mask, gender, age'''
+        return mask, gender, age
 
-'''# ViT_B_16
+# ViT_B_16
 from torchvision.models import vit_b_16
 class ViT_B_16(nn.Module):
     def __init__(self, num_classes):
@@ -147,7 +147,7 @@ class ViT_B_16(nn.Module):
 
     def forward(self, x):
         output = self.backbone(x)
-        return output'''
+        return output
 
 
 # densenet 121
