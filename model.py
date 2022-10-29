@@ -117,6 +117,24 @@ class Swin_b(nn.Module):
         x = self.backbone(x)
         return x
 
+class Swin_b_Deep(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        self.backbone = swin_b(weights='IMAGENET1K_V1')
+        self.backbone.head = nn.Sequential(
+        nn.Linear(1024, 512),
+        nn.LeakyReLU(),
+        nn.BatchNorm1d(512),
+        nn.Linear(512, 128),
+        nn.LeakyReLU(),
+        nn.BatchNorm1d(128),
+        nn.Linear(128, num_classes),
+        )
+
+    def forward(self, x):
+        x = self.backbone(x)
+        return x
+
 # Multiple Output Model Template
 from torchvision.models import resnext101_64x4d
 class MultiHeadBaseModel(nn.Module):
