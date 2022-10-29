@@ -210,9 +210,9 @@ class DenseNet201(nn.Module):
         self.backbone = torch.hub.load('pytorch/vision:v0.14.0', 'densenet201', pretrained=True)
         fc1 = nn.Linear(1920,1024)
         self.backbone.classifier = fc1
-        for parameter in self.backbone.parameters():
-            parameter.requires_grad = False
-        self.backbone.classifier.weight.requires_grad = True
+        # for parameter in self.backbone.parameters():
+        #     parameter.requires_grad = False
+        # self.backbone.classifier.weight.requires_grad = True
         self.bn1 = nn.BatchNorm1d(1024)
         self.classifier2 = nn.Linear(1024, 512)
         self.bn2 = nn.BatchNorm1d(512)
@@ -220,14 +220,17 @@ class DenseNet201(nn.Module):
         self.bn3 = nn.BatchNorm1d(128)
         self.classifier4 = nn.Linear(128, num_classes)
         self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(p=0.5)
     
     def forward(self, x):
         x = self.backbone(x)
         x = self.relu(x)
         x = self.bn1(x)
+        x = self.dropout(x)
         x = self.classifier2(x)
         x = self.relu(x)
         x = self.bn2(x)
+        x = self.dropout(x)
         x = self.classifier3(x)
         x = self.relu(x)
         x = self.bn3(x)
