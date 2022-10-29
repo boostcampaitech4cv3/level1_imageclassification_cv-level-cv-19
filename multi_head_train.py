@@ -287,38 +287,10 @@ def train(data_dir, model_dir, args):
                 age_labels = age_labels.to(device)
 
                 r = np.random.rand(1)
-                if args.beta > 0 and r < args.cutmix_prob:
-                    # generate mixed sample
-                    lam = np.random.beta(args.beta, args.beta)
-                    rand_index = torch.randperm(inputs.size()[0]).cuda()
-                    
-                    mask_labels_a = mask_labels
-                    mask_labels_b = mask_labels[rand_index]
-                    
-                    gender_labels_a = gender_labels
-                    gender_labels_b = gender_labels[rand_index]
-
-                    age_labels_a = age_labels
-                    age_labels_b = age_labels[rand_index]
-
-                    bbx1, bby1, bbx2, bby2 = rand_bbox(inputs.size(), lam)
-                    inputs[:, :, bbx1:bbx2, bby1:bby2] = inputs[rand_index, :, bbx1:bbx2, bby1:bby2]
-                    
-                    # adjust lambda to exactly match pixel ratio
-                    lam = 1 - ((bbx2 - bbx1) * (bby2 - bby1) / (inputs.size()[-1] * inputs.size()[-2]))
-                    
-                    # compute output
-                    mask, gender, age = model(inputs)
-
-                    mask_loss = criterion(mask, mask_labels_a) * lam + criterion(mask, mask_labels_b) * (1. - lam)
-                    gender_loss = criterion(gender, gender_labels_a) * lam + criterion(gender, gender_labels_b) * (1. - lam)
-                    age_loss = criterion(age, age_labels_a) * lam + criterion(age, age_labels_b) * (1. - lam)
-
-                else:
-                    mask, gender, age = model(inputs)
-                    mask_loss = criterion(mask, mask_labels)
-                    gender_loss = criterion(gender, gender_labels)
-                    age_loss = criterion(age, age_labels)
+                mask, gender, age = model(inputs)
+                mask_loss = criterion(mask, mask_labels)
+                gender_loss = criterion(gender, gender_labels)
+                age_loss = criterion(age, age_labels)
                 
                 preds_mask = torch.argmax(mask, dim=-1)
                 preds_gender = torch.argmax(gender, dim=-1)
