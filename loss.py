@@ -64,6 +64,54 @@ class F1Loss(nn.Module):
         f1 = 2 * (precision * recall) / (precision + recall + self.epsilon)
         f1 = f1.clamp(min=self.epsilon, max=1 - self.epsilon)
         return 1 - f1.mean()
+
+class F1Loss_2(nn.Module):
+    def __init__(self, classes=2, epsilon=1e-7):
+        super().__init__()
+        self.classes = classes
+        self.epsilon = epsilon
+
+    def forward(self, y_pred, y_true):
+        assert y_pred.ndim == 2
+        assert y_true.ndim == 1
+        y_true = F.one_hot(y_true, self.classes).to(torch.float32)
+        y_pred = F.softmax(y_pred, dim=1)
+
+        tp = (y_true * y_pred).sum(dim=0).to(torch.float32)
+        tn = ((1 - y_true) * (1 - y_pred)).sum(dim=0).to(torch.float32)
+        fp = ((1 - y_true) * y_pred).sum(dim=0).to(torch.float32)
+        fn = (y_true * (1 - y_pred)).sum(dim=0).to(torch.float32)
+
+        precision = tp / (tp + fp + self.epsilon)
+        recall = tp / (tp + fn + self.epsilon)
+
+        f1 = 2 * (precision * recall) / (precision + recall + self.epsilon)
+        f1 = f1.clamp(min=self.epsilon, max=1 - self.epsilon)
+        return 1 - f1.mean()
+
+class F1Loss_3(nn.Module):
+    def __init__(self, classes=18, epsilon=1e-7):
+        super().__init__()
+        self.classes = classes
+        self.epsilon = epsilon
+
+    def forward(self, y_pred, y_true):
+        assert y_pred.ndim == 2
+        assert y_true.ndim == 1
+        y_true = F.one_hot(y_true, self.classes).to(torch.float32)
+        y_pred = F.softmax(y_pred, dim=1)
+
+        tp = (y_true * y_pred).sum(dim=0).to(torch.float32)
+        tn = ((1 - y_true) * (1 - y_pred)).sum(dim=0).to(torch.float32)
+        fp = ((1 - y_true) * y_pred).sum(dim=0).to(torch.float32)
+        fn = (y_true * (1 - y_pred)).sum(dim=0).to(torch.float32)
+
+        precision = tp / (tp + fp + self.epsilon)
+        recall = tp / (tp + fn + self.epsilon)
+
+        f1 = 2 * (precision * recall) / (precision + recall + self.epsilon)
+        f1 = f1.clamp(min=self.epsilon, max=1 - self.epsilon)
+        return 1 - f1.mean()
     
     
 class FocalLossWithSmoothing(nn.Module):
@@ -135,6 +183,8 @@ _criterion_entrypoints = {
     'focal': FocalLoss,
     'label_smoothing': LabelSmoothingLoss,
     'f1': F1Loss,
+    'f1_2': F1Loss_2,
+    'f1_3': F1Loss_3,
     'focal_with_ls':FocalLossWithSmoothing
 }
 
