@@ -8,7 +8,7 @@ import numpy as np
 import torch
 from PIL import Image
 from torch.utils.data import Dataset, Subset, random_split
-from torchvision.transforms import Resize, ToTensor, Normalize, Compose, CenterCrop, ColorJitter
+from torchvision.transforms import Resize, ToTensor, Normalize, Compose, CenterCrop, ColorJitter, RandomHorizontalFlip, RandomRotation
 
 IMG_EXTENSIONS = [
     ".jpg", ".JPG", ".jpeg", ".JPEG", ".png",
@@ -49,6 +49,27 @@ class AddGaussianNoise(object):
         return self.__class__.__name__ + '(mean={0}, std={1})'.format(self.mean, self.std)
 
 
+class AddRandomGaussianNoise(object):
+    """
+        transform 에 없는 기능들은 이런식으로 __init__, __call__, __repr__ 부분을
+        직접 구현하여 사용할 수 있습니다.
+    """
+
+    def __init__(self, mean=0., std=1., p = 0.5):
+        self.std = std
+        self.mean = mean
+        self.p = p
+
+    def __call__(self, tensor):
+        r = np.random.rand(1)
+        if r > self.p:
+            return tensor + torch.randn(tensor.size()) * self.std + self.mean
+        else:
+            return tensor
+
+    def __repr__(self):
+        return self.__class__.__name__ + '(mean={0}, std={1})'.format(self.mean, self.std)
+
 class CustomAugmentation:
     def __init__(self, resize, mean, std, **args):
         self.transform = Compose([
@@ -62,6 +83,23 @@ class CustomAugmentation:
 
     def __call__(self, image):
         return self.transform(image)
+
+class GuCustomAugmentation:
+    def __init__(self, resize, mean, std, **args):
+        self.transform = Compose([
+            # CenterCrop((320, 256)),
+            Resize(resize, Image.BILINEAR),
+            ColorJitter(0.1, 0.1, 0.1, 0.1),
+            RandomHorizontalFlip(p=0.5),
+            RandomRotation(degrees=(-10,10)),
+            ToTensor(),
+            Normalize(mean=mean, std=std),
+            AddRandomGaussianNoise()
+        ])
+
+    def __call__(self, image):
+        return self.transform(image)
+
 
 
 class MaskLabels(int, Enum):
