@@ -18,7 +18,7 @@ class scheduler_module():
             
             ## 직접구현 ##
             'WarmupConstant': {"warmup_steps": 5}, # 초반 warmup_step까지 천천히 증가,
-            'SGDR':{"T_0": 10, "T_mult": 1, "eta_max": 0.01,  "T_up": 2, "gamma": 0.5} # https://gaussian37.github.io/dl-pytorch-lr_scheduler/  -> Custom CosineAnnealingWarmRestarts
+            'SGDR':{"T_0": 10, "T_mult": 1, "eta_max": 0.002,  "T_up": 2, "gamma": 0.5} # https://gaussian37.github.io/dl-pytorch-lr_scheduler/  -> Custom CosineAnnealingWarmRestarts
         }
     scheduler_list_implemented = [
             'WarmupConstant',
