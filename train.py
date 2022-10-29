@@ -11,14 +11,23 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from torch.optim.lr_scheduler import StepLR
+from torch.optim.lr_scheduler import StepLR, CosineAnnealingLR, ReduceLROnPlateau
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 from dataset import MaskBaseDataset
 from loss import create_criterion
+from torchmetrics import ConfusionMatrix, F1Score
+import seaborn as sns
+import pandas as pd
+import matplotlib.pyplot as plt
+
+# 경고 off
+import warnings
+warnings.filterwarnings(action='ignore')
 
 
+# 재현성
 def seed_everything(seed):
     torch.manual_seed(seed)
     torch.cuda.manual_seed(seed)
@@ -34,6 +43,7 @@ def get_lr(optimizer):
         return param_group['lr']
 
 
+# tensorboard에 올리는 이미지 grid 생성
 def grid_image(np_images, gts, preds, n=16, shuffle=False):
     batch_size = np_images.shape[0]
     assert n <= batch_size
@@ -63,7 +73,7 @@ def grid_image(np_images, gts, preds, n=16, shuffle=False):
 
     return figure
 
-
+# 자동 경로 추가
 def increment_path(path, exist_ok=False):
     """ Automatically increment path, i.e. runs/exp --> runs/exp0, runs/exp1 etc.
     Args:
@@ -80,6 +90,7 @@ def increment_path(path, exist_ok=False):
         n = max(i) + 1 if i else 2
         return f"{path}{n}"
 
+# cutmix
 def rand_bbox(size, lam):
     W = size[2]
     H = size[3]
@@ -97,6 +108,45 @@ def rand_bbox(size, lam):
     bby2 = np.clip(cy + cut_h // 2, 0, H)
 
     return bbx1, bby1, bbx2, bby2
+
+# confusion matrix
+def plot_confusion_matrix(confusion_matrix,confusion_matrix_mask, confusion_matrix_gender, confusion_matrix_age, dir_path):
+    fig_all, ax = plt.subplots(figsize=(15, 15))
+    sns.heatmap(confusion_matrix, linewidths=1, annot=True, ax=ax, fmt='g', cmap= "Blues", cbar = False)
+    ax.axes.set_xlabel('Predicted labels')
+    ax.axes.set_ylabel('True labels')
+    tmp = []
+    for i in range(3):
+        for j in range(2):
+            for k in range(3):
+                tmp.append(f'[{i},{j},{k}]')
+
+    ax.axes.xaxis.set_ticklabels([*tmp])
+    ax.axes.yaxis.set_ticklabels([*tmp])
+    fig_all.savefig(dir_path+"/18_class_confusion_matrix.png")
+    
+    fig, ax = plt.subplots(ncols=3, figsize=(15, 5))
+    sns.heatmap(confusion_matrix_mask, linewidths=1, annot=True, ax=ax[0], fmt='g', cmap= "Blues", cbar = False)
+    sns.heatmap(confusion_matrix_gender, linewidths=1, annot=True, ax=ax[1], fmt='g', cmap= "Blues", cbar = False)
+    sns.heatmap(confusion_matrix_age, linewidths=1, annot=True, ax=ax[2], fmt='g', cmap= "Blues", cbar = False)
+    
+    for i, title in enumerate(['mask','gender','age']):
+        ax[i].axes.set_title(title)
+        ax[i].axes.set_xlabel('Predicted labels')
+        ax[i].axes.set_ylabel('True labels')
+    
+    ax[0].axes.xaxis.set_ticklabels(['Wear', 'Incorrect', 'Not Wear'])
+    ax[0].axes.yaxis.set_ticklabels(['Wear', 'Incorrect', 'Not Wear'])
+    
+    ax[1].axes.xaxis.set_ticklabels(['Male', 'Female'])
+    ax[1].axes.yaxis.set_ticklabels(['Male', 'Female'])
+
+    ax[2].axes.xaxis.set_ticklabels(['<30', '>=30 and < 60', '>=60'])
+    ax[2].axes.yaxis.set_ticklabels(['<30', '>=30 and < 60', '>=60'])
+    
+    fig.savefig(dir_path+"/sep_class_confusion_matrix.png")  
+    
+    return fig_all, fig
 
 def train(data_dir, model_dir, args):
     seed_everything(args.seed)
@@ -123,16 +173,23 @@ def train(data_dir, model_dir, args):
     )
     dataset.set_transform(transform)
 
-    # -- data_loader
+    # -- data_loader & sampler
     train_set, val_set = dataset.split_dataset()
-
+    
+    
+    if args.sampler == "None":
+        sampler_flag = (True, None)
+    else:
+        sampler_module = getattr(import_module("sampler"), args.sampler)
+        sampler_flag = (False, sampler_module(train_set, labels =  dataset.get_multi_labels())())
     train_loader = DataLoader(
         train_set,
         batch_size=args.batch_size,
         num_workers=multiprocessing.cpu_count() // 2,
-        shuffle=True,
+        shuffle=sampler_flag[0],
         pin_memory=use_cuda,
         drop_last=True,
+        sampler= sampler_flag[1]
     )
 
     val_loader = DataLoader(
@@ -165,11 +222,18 @@ def train(data_dir, model_dir, args):
         weight_decay=5e-4
     )
     
+    # --scheduler
+
+    schduler_entrypoints = {
+        'StepLR': StepLR(optimizer, args.lr_decay_step, gamma=0.5),
+        'ReduceLROnPlateau': ReduceLROnPlateau(optimizer, factor=0.1, patience=10),
+        'CosineAnnealingLR': CosineAnnealingLR(optimizer, T_max=2, eta_min=0.)
+    }
 
     if int(args.lr_decay_step) == 0:
         scheduler = None
     else:
-        scheduler = StepLR(optimizer, args.lr_decay_step, gamma=0.5)
+        scheduler = schduler_entrypoints[args.scheduler]
 
     # -- logging
     logger = SummaryWriter(log_dir=save_dir)
@@ -178,6 +242,7 @@ def train(data_dir, model_dir, args):
 
     best_val_acc = 0
     best_val_loss = np.inf
+    best_f1_score = 0
     
     early_stopping = args.patient
     
@@ -244,6 +309,7 @@ def train(data_dir, model_dir, args):
                 loss_value = 0
                 matches = 0
         
+        # --scheduler
         if int(args.lr_decay_step) == 0:
             pass
         else:
@@ -257,36 +323,25 @@ def train(data_dir, model_dir, args):
             val_loss_items = []
             val_acc_items = []
             figure = None
+            
+            confusion_matrix  = torch.Tensor([[0]])
+            confusion_matrix_mask = torch.Tensor([[0]])
+            confusion_matrix_gender = torch.Tensor([[0]])
+            confusion_matrix_age = torch.Tensor([[0]])
+            
+            preds_expand = torch.tensor([])
+            labels_expand = torch.tensor([])
+            
             for val_batch in val_loader:
                 inputs, labels = val_batch
                 inputs = inputs.to(device)
                 labels = labels.to(device)
+                
+                outs = model(inputs)
+                loss = criterion(outs, labels)
 
-                r = np.random.rand(1)
-                if args.beta > 0 and r < args.cutmix_prob:
-                    # generate mixed sample
-                    lam = np.random.beta(args.beta, args.beta)
-                    rand_index = torch.randperm(inputs.size()[0]).cuda()
-                    
-                    labels_a = labels
-                    labels_b = labels[rand_index]
-                    
-                    bbx1, bby1, bbx2, bby2 = rand_bbox(inputs.size(), lam)
-                    inputs[:, :, bbx1:bbx2, bby1:bby2] = inputs[rand_index, :, bbx1:bbx2, bby1:bby2]
-                    
-                    # adjust lambda to exactly match pixel ratio
-                    lam = 1 - ((bbx2 - bbx1) * (bby2 - bby1) / (inputs.size()[-1] * inputs.size()[-2]))
-                    
-                    # compute output
-                    outs = model(inputs)
-                    loss = criterion(outs, labels_a) * lam + criterion(outs, labels_b) * (1. - lam)
-
-                else:
-                    outs = model(inputs)
-                    loss = criterion(outs, labels)
-
+                # -- calculate metrics(loss, acc, f1) & confusion matrix
                 preds = torch.argmax(outs, dim=-1)
-
                 loss_item = criterion(outs, labels).item()
                 acc_item = (labels == preds).sum().item()
                 val_loss_items.append(loss_item)
@@ -298,31 +353,64 @@ def train(data_dir, model_dir, args):
                     figure = grid_image(
                         inputs_np, labels, preds, n=16, shuffle=args.dataset != "MaskSplitByProfileDataset"
                     )
-
+                
+                preds_mask, preds_gender, preds_age = MaskBaseDataset.decode_multi_class(preds)
+                labels_mask, labels_gender, labels_age = MaskBaseDataset.decode_multi_class(labels)
+                
+                confmat = ConfusionMatrix(num_classes = 18).to(device)
+                confusion_matrix = confmat(preds,labels).detach().cpu() + confusion_matrix
+                confmat = ConfusionMatrix(num_classes = 3).to(device)
+                confusion_matrix_mask = confmat(preds_mask,labels_mask).detach().cpu() + confusion_matrix_mask
+                confmat = ConfusionMatrix(num_classes = 2).to(device)
+                confusion_matrix_gender = confmat(preds_gender,labels_gender).detach().cpu() + confusion_matrix_gender
+                confmat = ConfusionMatrix(num_classes = 3).to(device)
+                confusion_matrix_age = confmat(preds_age,labels_age).detach().cpu() + confusion_matrix_age
+                
+                preds_expand = torch.cat((preds_expand, preds.detach().cpu()),-1)
+                labels_expand = torch.cat((labels_expand, labels.detach().cpu()),-1)
+                        
+            confusion_all_fig, confusion_sep_fig = plot_confusion_matrix(confusion_matrix,confusion_matrix_mask, confusion_matrix_gender, confusion_matrix_age , save_dir)    
+            logger.add_figure("val_confusion_matrix_all",confusion_all_fig, epoch)
+            logger.add_figure("val_confusion_matrix_sep",confusion_sep_fig, epoch)
+            
+            f1 = F1Score(num_classes=num_classes)
+            f1_score = f1(preds_expand.type(torch.LongTensor), labels_expand.type(torch.LongTensor)).item()
             val_loss = np.sum(val_loss_items) / len(val_loader)
             val_acc = np.sum(val_acc_items) / len(val_set)
             best_val_loss = min(best_val_loss, val_loss)
+            
+            flag = True
             if val_acc > best_val_acc:
                 print(f"New best model for val accuracy : {val_acc:4.2%}! saving the best model..")
-                torch.save(model.module.state_dict(), f"{save_dir}/best.pth")
+                torch.save(model.module.state_dict(), f"{save_dir}/best_acc.pth")
                 best_val_acc = val_acc
                 early_stopping = args.patient
-            else:
+                flag = False
+                
+            if f1_score > best_f1_score:
+                print(f"New best model for f1 score : {f1_score:4.4}! saving the best model..")
+                torch.save(model.module.state_dict(), f"{save_dir}/best_f1.pth")
+                best_f1_score = f1_score
+                early_stopping = args.patient
+                flag = False
+                
+            if flag:
                 early_stopping = early_stopping -1
                 print(f"patient_left: {early_stopping}")
                 if early_stopping == 0:
                     torch.save(model.module.state_dict(), f"{save_dir}/last.pth")                    
                     print("early_stopping, save last model as last.pth")
                     break                    
-            torch.save(model.module.state_dict(), f"{save_dir}/last.pth")
             print(
-                f"[Val] acc : {val_acc:4.2%}, loss: {val_loss:4.2} || "
-                f"best acc : {best_val_acc:4.2%}, best loss: {best_val_loss:4.2}"
+                f"[Val] acc : {val_acc:4.2%}, loss: {val_loss:4.2}, f1: {f1_score:4.4}|| "
+                f"best acc : {best_val_acc:4.2%}, best loss: {best_val_loss:4.2}, best f1: {best_f1_score:4.4}"
             )
             logger.add_scalar("Val/loss", val_loss, epoch)
             logger.add_scalar("Val/accuracy", val_acc, epoch)
             logger.add_figure("results", figure, epoch)
             logger.add_scalar("early_stopping_count", early_stopping, epoch)
+            logger.add_scalar("Val/f1_score", f1_score, epoch)
+            
             print()
 
 
@@ -333,7 +421,7 @@ if __name__ == '__main__':
     # Data and model checkpoints directories
     parser.add_argument('--seed', type=int, default=42, help='random seed (default: 42)')
     parser.add_argument('--epochs', type=int, default=200, help='number of epochs to train (default: 200)')
-    parser.add_argument('--dataset', type=str, default='MaskBaseDataset', help='dataset augmentation type (default: MaskBaseDataset)')
+    parser.add_argument('--dataset', type=str, default='MaskSplitByProfileDataset', help='dataset augmentation type (default: MaskBaseDataset)')
     parser.add_argument('--augmentation', type=str, default='BaseAugmentation', help='data augmentation type (default: BaseAugmentation)')
     parser.add_argument("--resize", nargs="+", type=int, default=[128, 96], help='resize size for image when training')
     parser.add_argument('--batch_size', type=int, default=64, help='input batch size for training (default: 64)')
@@ -348,8 +436,9 @@ if __name__ == '__main__':
     parser.add_argument('--name', default='exp', help='model save at {SM_MODEL_DIR}/{name}')
     parser.add_argument('--patient', type=int, default = 15, help='early stopping patient(default: 15)')
     parser.add_argument('--cutmix_prob', type=float, default=0, help='cutmix probability')
-    parser.add_argument('--beta', default=0, type=float, help='hyperparameter beta')
-    
+    parser.add_argument('--beta', type=float, default=0, help='hyperparameter beta')
+    parser.add_argument('--sampler', type=str, default='None', help='sampler for imblanced data (default:None), samplers in sampler.py')
+    parser.add_argument('--scheduler', default='StepLR', type=str, help='scheduler(default:StepLR')
     # Container environment
     parser.add_argument('--data_dir', type=str, default=os.environ.get('SM_CHANNEL_TRAIN', '/opt/ml/input/data/train/images'))
     parser.add_argument('--model_dir', type=str, default=os.environ.get('SM_MODEL_DIR', './model'))
@@ -361,3 +450,4 @@ if __name__ == '__main__':
     model_dir = args.model_dir
 
     train(data_dir, model_dir, args)
+    

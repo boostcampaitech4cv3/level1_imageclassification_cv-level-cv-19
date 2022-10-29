@@ -32,12 +32,12 @@ class BaseModel(nn.Module):
         return self.fc(x)
 
 # resnet 50
-from torchvision.models import resnet50
+from torchvision.models import resnet50, ResNet50_Weights
 class ResNet50(nn.Module):
     def __init__(self, num_classes):
         super().__init__()
 
-        self.backbone = resnet50(pretrained=True)
+        self.backbone = resnet50(weights=ResNet50_Weights.IMAGENET1K_V1)
         self.backbone.fc = nn.Linear(2048, num_classes)
         
         # freeze except classifier
@@ -192,3 +192,49 @@ class DenseNet201(nn.Module):
     def forward(self, x):
         output = self.backbone(x)
         return output
+
+# efficientNetb0
+class EfficientNet_B0(nn.Module):
+    def __init__(self,num_classes = 18):
+        super(EfficientNet, self).__init__()
+        self.backbone = torch.hub.load('NVIDIA/DeepLearningExamples:torchhub', 'nvidia_efficientnet_b0', pretrained=True)
+        self.backbone.fc = nn.Linear(1280, num_classes)
+
+    def forward(self, x):
+        output = self.backbone(x)
+        return output
+
+# EfficientNet_B2
+from torchvision.models import efficientnet_b2
+class EfficientNet_B2(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        self.backbone = efficientnet_b2(weights='DEFAULT')
+        self.backbone.classifier = nn.Sequential(
+            nn.Dropout(p=0.3, inplace=True),
+            nn.Linear(1408, num_classes)
+        )
+
+    def forward(self, x):
+        output = self.backbone(x)
+        return output
+
+
+from torchvision.models import resnext50_32x4d
+class MultiHeadResNext50(nn.Module):
+    def __init__(self):
+        super().__init__()
+        backbone = resnext50_32x4d(weights='IMAGENET1K_V1')
+        self.features = nn.Sequential(*list(backbone.children())[:-1], nn.Flatten())
+        self.mask_classifier = nn.Sequential(nn.Linear(2048, 3))
+        self.gender_classifier = nn.Sequential(nn.Linear(2048, 2))
+        self.age_classifier = nn.Sequential(nn.Linear(2048, 3))
+ 
+    def forward(self, x):
+        x = self.features(x)
+        mask = self.mask_classifier(x)
+        gender = self.gender_classifier(x)
+        age = self.age_classifier(x)
+        return mask, gender, age
+
+A = MultiHeadResNext50()
