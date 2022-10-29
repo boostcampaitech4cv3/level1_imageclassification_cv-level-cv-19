@@ -46,12 +46,12 @@ def get_lr(optimizer):
 
 
 # tensorboard에 올리는 이미지 grid 생성
-def grid_image(np_images, gts, preds, n=16, shuffle=False):
+def grid_image(np_images, gts, preds, n=16, shuffle=False, fig_size = (12,20)):
     batch_size = np_images.shape[0]
-    assert n <= batch_size
+    #assert n <= batch_size
 
     choices = random.choices(range(batch_size), k=n) if shuffle else list(range(n))
-    figure = plt.figure(figsize=(12, 18 + 2))  # cautions: hardcoded, 이미지 크기에 따라 figsize 를 조정해야 할 수 있습니다. T.T
+    figure = plt.figure(figsize=fig_size)  # cautions: hardcoded, 이미지 크기에 따라 figsize 를 조정해야 할 수 있습니다. T.T
     plt.subplots_adjust(top=0.8)  # cautions: hardcoded, 이미지 크기에 따라 top 를 조정해야 할 수 있습니다. T.T
     n_grid = int(np.ceil(n ** 0.5))
     tasks = ["mask", "gender", "age"]
@@ -310,6 +310,11 @@ def train(data_dir, model_dir, args):
             val_acc_items = []
             figure = None
             
+            inputs_np_wrong = None
+            labels_wrong = torch.Tensor([])
+            preds_wrong = torch.Tensor([])
+            wrong_flag = args.wrong_fig != -1 and epoch >= args.wrong_fig
+            
             confusion_matrix  = torch.Tensor([[0]])
             confusion_matrix_mask = torch.Tensor([[0]])
             confusion_matrix_gender = torch.Tensor([[0]])
@@ -326,7 +331,7 @@ def train(data_dir, model_dir, args):
                 outs = model(inputs)
                 loss = criterion(outs, labels)
 
-                # -- calculate metrics(loss, acc, f1) & confusion matrix
+                # -- calculate metrics(loss, acc, f1) & confusion matrix & visualize wrong figure
                 preds = torch.argmax(outs, dim=-1)
                 loss_item = criterion(outs, labels).item()
                 acc_item = (labels == preds).sum().item()
@@ -339,10 +344,26 @@ def train(data_dir, model_dir, args):
                     figure = grid_image(
                         inputs_np, labels, preds, n=16, shuffle=args.dataset != "MaskSplitByProfileDataset"
                     )
+                    logger.add_figure("results", figure, epoch)
                 
                 preds_mask, preds_gender, preds_age = MaskBaseDataset.decode_multi_class(preds)
                 labels_mask, labels_gender, labels_age = MaskBaseDataset.decode_multi_class(labels)
                 
+                
+                
+                if wrong_flag:
+                    wrong_list = (labels == preds).detach().cpu()
+                    wrong_list = np.array([not boo for boo in wrong_list])
+                    if inputs_np_wrong is None:
+                        inputs_np_wrong = torch.clone(inputs).detach().cpu().permute(0, 2, 3, 1).numpy()[wrong_list]
+                    else:
+                        inputs_np_wrong = np.concatenate((inputs_np_wrong,torch.clone(inputs).detach().cpu().permute(0, 2, 3, 1).numpy()[wrong_list]), axis = 0)
+                    
+                    labels_wrong = torch.cat((labels_wrong,labels[wrong_list].detach().cpu()), -1)
+                    preds_wrong = torch.cat((preds_wrong,preds[wrong_list].detach().cpu()), -1)                   
+                    
+                    
+                              
                 confmat = ConfusionMatrix(num_classes = 18).to(device)
                 confusion_matrix = confmat(preds,labels).detach().cpu() + confusion_matrix
                 confmat = ConfusionMatrix(num_classes = 3).to(device)
@@ -354,6 +375,8 @@ def train(data_dir, model_dir, args):
                 
                 preds_expand = torch.cat((preds_expand, preds.detach().cpu()),-1)
                 labels_expand = torch.cat((labels_expand, labels.detach().cpu()),-1)
+            
+                                 
                         
             confusion_all_fig, confusion_sep_fig = plot_confusion_matrix(confusion_matrix,confusion_matrix_mask, confusion_matrix_gender, confusion_matrix_age)    
             logger.add_figure("val_confusion_matrix_all",confusion_all_fig, epoch)
@@ -387,6 +410,11 @@ def train(data_dir, model_dir, args):
             if flag == False:
                 confusion_all_fig.savefig(save_dir+"/best_18_class_confusion_matrix.png")
                 confusion_sep_fig.savefig(save_dir+"/best_sep_class_confusion_matrix.png")
+                if wrong_flag:
+                    inputs_np_wrong = dataset_module.denormalize_image(inputs_np_wrong, dataset.mean, dataset.std)
+                    figure_wrong = grid_image(inputs_np_wrong, labels_wrong, preds_wrong, n= len(labels_wrong), fig_size = (48,80))
+                    logger.add_figure("results/wrong", figure_wrong, epoch)
+                    figure_wrong.savefig(save_dir+"/wrong_image.png")
                 
             if flag:
                 early_stopping = early_stopping -1
@@ -403,7 +431,6 @@ def train(data_dir, model_dir, args):
             )
             logger.add_scalar("Val/loss", val_loss, epoch)
             logger.add_scalar("Val/accuracy", val_acc, epoch)
-            logger.add_figure("results", figure, epoch)
             logger.add_scalar("early_stopping_count", early_stopping, epoch)
             logger.add_scalar("Val/f1_score", f1_score, epoch)
             
@@ -442,6 +469,7 @@ if __name__ == '__main__':
     parser.add_argument('--sampler', type=str, default='None', help='sampler for imblanced data (default:None), samplers in sampler.py')
     parser.add_argument('--scheduler', type=str, default='None', help='scheduler(default:None), scheduler list in scheduler.py')
     parser.add_argument('--model_save',type=bool, default=False, help='save model architecture with state_dict')
+    parser.add_argument('--wrong_fig',type=int, default=0, help='visualize wrong figures after args.wrong_fig epoch (default:-1)')
     
     # Container environment
     parser.add_argument('--data_dir', type=str, default=os.environ.get('SM_CHANNEL_TRAIN', '/opt/ml/input/data/train/images'))
