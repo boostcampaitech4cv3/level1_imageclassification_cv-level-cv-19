@@ -11,7 +11,7 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import torch
-from torch.optim.lr_scheduler import StepLR
+from torch.optim.lr_scheduler import StepLR, CosineAnnealingLR, ReduceLROnPlateau
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
@@ -223,10 +223,17 @@ def train(data_dir, model_dir, args):
     )
     
     # --scheduler
+
+    schduler_entrypoints = {
+        'StepLR': StepLR(optimizer, args.lr_decay_step, gamma=0.5),
+        'ReduceLROnPlateau': ReduceLROnPlateau(optimizer, factor=0.1, patience=10),
+        'CosineAnnealingLR': CosineAnnealingLR(optimizer, T_max=2, eta_min=0.)
+    }
+
     if int(args.lr_decay_step) == 0:
         scheduler = None
     else:
-        scheduler = StepLR(optimizer, args.lr_decay_step, gamma=0.5)
+        scheduler = schduler_entrypoints[args.scheduler]
 
     # -- logging
     logger = SummaryWriter(log_dir=save_dir)
@@ -451,7 +458,7 @@ if __name__ == '__main__':
     parser.add_argument('--cutmix_prob', type=float, default=0, help='cutmix probability')
     parser.add_argument('--beta', type=float, default=0, help='hyperparameter beta')
     parser.add_argument('--sampler', type=str, default='None', help='sampler for imblanced data (default:None), samplers in sampler.py')
-    
+    parser.add_argument('--scheduler', default='StepLR', type=str, help='scheduler(default:StepLR')
     # Container environment
     parser.add_argument('--data_dir', type=str, default=os.environ.get('SM_CHANNEL_TRAIN', '/opt/ml/input/data/train/images'))
     parser.add_argument('--model_dir', type=str, default=os.environ.get('SM_MODEL_DIR', './model'))
