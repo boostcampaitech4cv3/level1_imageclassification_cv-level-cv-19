@@ -330,28 +330,8 @@ def train(data_dir, model_dir, args):
                 inputs = inputs.to(device)
                 labels = labels.to(device)
                 
-                r = np.random.rand(1)
-                if args.beta > 0 and r < args.cutmix_prob:
-                    # generate mixed sample
-                    lam = np.random.beta(args.beta, args.beta)
-                    rand_index = torch.randperm(inputs.size()[0]).cuda()
-                    
-                    labels_a = labels
-                    labels_b = labels[rand_index]
-                    
-                    bbx1, bby1, bbx2, bby2 = rand_bbox(inputs.size(), lam)
-                    inputs[:, :, bbx1:bbx2, bby1:bby2] = inputs[rand_index, :, bbx1:bbx2, bby1:bby2]
-                    
-                    # adjust lambda to exactly match pixel ratio
-                    lam = 1 - ((bbx2 - bbx1) * (bby2 - bby1) / (inputs.size()[-1] * inputs.size()[-2]))
-                    
-                    # compute output
-                    outs = model(inputs)
-                    loss = criterion(outs, labels_a) * lam + criterion(outs, labels_b) * (1. - lam)
-
-                else:
-                    outs = model(inputs)
-                    loss = criterion(outs, labels)
+                outs = model(inputs)
+                loss = criterion(outs, labels)
 
                 # -- calculate metrics(loss, acc, f1) & confusion matrix
                 preds = torch.argmax(outs, dim=-1)
