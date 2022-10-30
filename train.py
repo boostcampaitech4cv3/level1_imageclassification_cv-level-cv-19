@@ -67,6 +67,7 @@ def grid_image(np_images, gts, preds, n=16, shuffle=False, fig_size = (12,20)):
             in zip(gt_decoded_labels, pred_decoded_labels, tasks)
         ])
 
+        plt.rc('font', size=7)
         plt.subplot(n_grid, n_grid, idx + 1, title=title)
         plt.xticks([])
         plt.yticks([])
@@ -149,6 +150,67 @@ def plot_confusion_matrix(confusion_matrix,confusion_matrix_mask, confusion_matr
     
     return fig_all, fig
 
+def wrong_fig_viz(inputs, labels, preds,
+                  labels_mask, preds_mask,
+                  labels_gender, preds_gender,
+                  labels_age, preds_age,
+                  inputs_np_wrong,
+                  inputs_np_wrong_mask, inputs_np_wrong_gender, inputs_np_wrong_age,
+                  labels_wrong, preds_wrong,
+                  labels_wrong_mask, preds_wrong_mask,
+                  labels_wrong_gender, preds_wrong_gender,
+                  labels_wrong_age, preds_wrong_age
+                  ):
+    # wrong_list = (labels == preds).detach().cpu()
+    # wrong_list = np.array([not boo for boo in wrong_list])
+    # if inputs_np_wrong is None:
+    #     inputs_np_wrong = torch.clone(inputs).detach().cpu().permute(0, 2, 3, 1).numpy()[wrong_list]
+    # else:
+    #     inputs_np_wrong = np.concatenate((inputs_np_wrong,torch.clone(inputs).detach().cpu().permute(0, 2, 3, 1).numpy()[wrong_list]), axis = 0)
+                    
+    # labels_wrong = torch.cat((labels_wrong,labels[wrong_list].detach().cpu()), -1)
+    # preds_wrong = torch.cat((preds_wrong,preds[wrong_list].detach().cpu()), -1)
+    
+    
+    
+    wrong_list_mask = (labels_mask == preds_mask).detach().cpu()
+    wrong_list_mask = np.array([not boo for boo in wrong_list_mask])
+    if inputs_np_wrong_mask is None:
+        inputs_np_wrong_mask = torch.clone(inputs).detach().cpu().permute(0, 2, 3, 1).numpy()[wrong_list_mask]
+    else:
+        inputs_np_wrong_mask = np.concatenate((inputs_np_wrong_mask,torch.clone(inputs).detach().cpu().permute(0, 2, 3, 1).numpy()[wrong_list_mask]), axis = 0)
+                    
+    labels_wrong_mask = torch.cat((labels_wrong_mask,labels[wrong_list_mask].detach().cpu()), -1)
+    preds_wrong_mask = torch.cat((preds_wrong_mask,preds[wrong_list_mask].detach().cpu()), -1)
+    
+    
+    wrong_list_gender = (labels_gender == preds_gender).detach().cpu()
+    wrong_list_gender = np.array([not boo for boo in wrong_list_gender])
+    if inputs_np_wrong_gender is None:
+        inputs_np_wrong_gender = torch.clone(inputs).detach().cpu().permute(0, 2, 3, 1).numpy()[wrong_list_gender]
+    else:
+        inputs_np_wrong_gender = np.concatenate((inputs_np_wrong_gender,torch.clone(inputs).detach().cpu().permute(0, 2, 3, 1).numpy()[wrong_list_gender]), axis = 0)
+                    
+    labels_wrong_gender = torch.cat((labels_wrong_gender,labels[wrong_list_gender].detach().cpu()), -1)
+    preds_wrong_gender = torch.cat((preds_wrong_gender,preds[wrong_list_gender].detach().cpu()), -1)
+    
+    
+    wrong_list_age = (labels_age == preds_age).detach().cpu()
+    wrong_list_age = np.array([not boo for boo in wrong_list_age])
+    if inputs_np_wrong_age is None:
+        inputs_np_wrong_age = torch.clone(inputs).detach().cpu().permute(0, 2, 3, 1).numpy()[wrong_list_age]
+    else:
+        inputs_np_wrong_age = np.concatenate((inputs_np_wrong_age,torch.clone(inputs).detach().cpu().permute(0, 2, 3, 1).numpy()[wrong_list_age]), axis = 0)
+                    
+    labels_wrong_age = torch.cat((labels_wrong_age,labels[wrong_list_age].detach().cpu()), -1)
+    preds_wrong_age = torch.cat((preds_wrong_age,preds[wrong_list_age].detach().cpu()), -1)
+
+    return (inputs_np_wrong, labels_wrong, preds_wrong), (inputs_np_wrong_mask, labels_wrong_mask, preds_wrong_mask),\
+        (inputs_np_wrong_gender, labels_wrong_gender, preds_wrong_gender),(inputs_np_wrong_age, labels_wrong_age, preds_wrong_age)
+
+
+
+# -- train loop
 def train(data_dir, model_dir, args):
     seed_everything(args.seed)
 
@@ -310,9 +372,10 @@ def train(data_dir, model_dir, args):
             val_acc_items = []
             figure = None
             
-            inputs_np_wrong = None
-            labels_wrong = torch.Tensor([])
-            preds_wrong = torch.Tensor([])
+            inputs_np_wrong = None;labels_wrong = torch.Tensor([]);preds_wrong = torch.Tensor([])
+            inputs_np_wrong_mask = None;labels_wrong_mask = torch.Tensor([]);preds_wrong_mask = torch.Tensor([])
+            inputs_np_wrong_gender = None;labels_wrong_gender = torch.Tensor([]);preds_wrong_gender = torch.Tensor([])
+            inputs_np_wrong_age = None;labels_wrong_age = torch.Tensor([]);preds_wrong_age = torch.Tensor([])
             wrong_flag = args.wrong_fig != -1 and epoch >= args.wrong_fig
             
             confusion_matrix  = torch.Tensor([[0]])
@@ -352,15 +415,20 @@ def train(data_dir, model_dir, args):
                 
                 
                 if wrong_flag:
-                    wrong_list = (labels == preds).detach().cpu()
-                    wrong_list = np.array([not boo for boo in wrong_list])
-                    if inputs_np_wrong is None:
-                        inputs_np_wrong = torch.clone(inputs).detach().cpu().permute(0, 2, 3, 1).numpy()[wrong_list]
-                    else:
-                        inputs_np_wrong = np.concatenate((inputs_np_wrong,torch.clone(inputs).detach().cpu().permute(0, 2, 3, 1).numpy()[wrong_list]), axis = 0)
+                    wrong_all, wrong_mask, wrong_gender, wrong_age = wrong_fig_viz(
+                        inputs, labels, preds,
+                        labels_mask, preds_mask, labels_gender, preds_gender, labels_age, preds_age,
+                        inputs_np_wrong, inputs_np_wrong_mask, inputs_np_wrong_gender, inputs_np_wrong_age,
+                        labels_wrong, preds_wrong, labels_wrong_mask, preds_wrong_mask,labels_wrong_gender, preds_wrong_gender,labels_wrong_age, preds_wrong_age
+                    )
                     
-                    labels_wrong = torch.cat((labels_wrong,labels[wrong_list].detach().cpu()), -1)
-                    preds_wrong = torch.cat((preds_wrong,preds[wrong_list].detach().cpu()), -1)                   
+                    # inputs_np_wrong, labels_wrong, preds_wrong = wrong_all
+                    inputs_np_wrong_mask, labels_wrong_mask, preds_wrong_mask = wrong_mask
+                    inputs_np_wrong_gender, labels_wrong_gender, preds_wrong_gender = wrong_gender
+                    inputs_np_wrong_age, labels_wrong_age, preds_wrong_age = wrong_age
+                    
+                    
+                                  
                     
                     
                               
@@ -408,13 +476,31 @@ def train(data_dir, model_dir, args):
                 flag = False
             
             if flag == False:
+                print("saving confusion matrix")
                 confusion_all_fig.savefig(save_dir+"/best_18_class_confusion_matrix.png")
                 confusion_sep_fig.savefig(save_dir+"/best_sep_class_confusion_matrix.png")
+                
                 if wrong_flag:
-                    inputs_np_wrong = dataset_module.denormalize_image(inputs_np_wrong, dataset.mean, dataset.std)
-                    figure_wrong = grid_image(inputs_np_wrong, labels_wrong, preds_wrong, n= len(labels_wrong), fig_size = (48,80))
-                    logger.add_figure("results/wrong", figure_wrong, epoch)
-                    figure_wrong.savefig(save_dir+"/wrong_image.png")
+                    print("saving wrong images")
+                    # all wrong images
+                    # inputs_np_wrong = dataset_module.denormalize_image(inputs_np_wrong, dataset.mean, dataset.std)
+                    # figure_wrong = grid_image(inputs_np_wrong, labels_wrong, preds_wrong, n= len(labels_wrong), fig_size = (40,40))
+                    # figure_wrong.savefig(save_dir+"/wrong_image.png")
+                    
+                    inputs_np_wrong_mask = dataset_module.denormalize_image(inputs_np_wrong_mask, dataset.mean, dataset.std)
+                    figure_wrong_mask = grid_image(inputs_np_wrong_mask, labels_wrong_mask, preds_wrong_mask, n= len(labels_wrong_mask), fig_size = (9,15))
+                    figure_wrong_mask.savefig(save_dir+"/wrong_mask_image.png")
+                    
+                    inputs_np_wrong_gender = dataset_module.denormalize_image(inputs_np_wrong_gender, dataset.mean, dataset.std)
+                    figure_wrong_gender = grid_image(inputs_np_wrong_gender, labels_wrong_gender, preds_wrong_gender, n= len(labels_wrong_gender), fig_size = (9,15))
+                    figure_wrong_gender.savefig(save_dir+"/wrong_gender_image.png")
+                    
+                    inputs_np_wrong_age = dataset_module.denormalize_image(inputs_np_wrong_age, dataset.mean, dataset.std)
+                    figure_wrong_age = grid_image(inputs_np_wrong_age, labels_wrong_age, preds_wrong_age, n= len(labels_wrong_age), fig_size = (9,15))
+                    figure_wrong_age.savefig(save_dir+"/wrong_age_image.png")
+                    
+                    
+                    
                 
             if flag:
                 early_stopping = early_stopping -1
