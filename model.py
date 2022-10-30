@@ -294,11 +294,12 @@ class EfficientNet_B2_Deep_BN(nn.Module):
             nn.Linear(1408, 512),
             nn.LeakyReLU(),
             nn.BatchNorm1d(512),
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(512, 128),
+            nn.Linear(512, 256),
             nn.LeakyReLU(),
-            nn.BatchNorm1d(512),
-            nn.Dropout(p=0.5, inplace=True),
+            nn.BatchNorm1d(256),
+            nn.Linear(256, 128),
+            nn.LeakyReLU(),
+            nn.BatchNorm1d(128),
             nn.Linear(128, num_classes)
         )
 
@@ -323,3 +324,15 @@ class MultiHeadResNext50(nn.Module):
         gender = self.gender_classifier(x)
         age = self.age_classifier(x)
         return mask, gender, age
+
+from torchvision.models import convnext_tiny, ConvNeXt_Tiny_Weights
+class ConvNext_Tiny(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        
+        self.backbone = convnext_tiny(weights = ConvNeXt_Tiny_Weights.DEFAULT)
+        self.backbone.Linear = nn.Linear(768, 768)
+        
+    def forward(self, x):
+        out = self.backbone(x)
+        return out

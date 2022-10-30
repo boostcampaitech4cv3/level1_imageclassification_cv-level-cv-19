@@ -55,7 +55,7 @@ class Weighted_Random_Sampler():
         dataset,
         labels
     ):
-        self.class_counts = pd.DataFrame(labels).value_counts().to_list()
+        self.class_counts = pd.Series(labels).value_counts().to_list()
         self.num_samples = len(dataset)
         self.labels = labels
         self.class_weights = [self.num_samples / self.class_counts[i] for i in range(len(self.class_counts))]
