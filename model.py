@@ -176,9 +176,9 @@ class DenseNet121(nn.Module):
         self.backbone = torch.hub.load('pytorch/vision:v0.14.0', 'densenet121', pretrained=True)
         fc1 = nn.Linear(1024,512)
         self.backbone.classifier = fc1
-        for parameter in self.backbone.parameters():
+        '''for parameter in self.backbone.parameters():
             parameter.requires_grad = False
-        self.backbone.classifier.weight.requires_grad = True
+        self.backbone.classifier.weight.requires_grad = True'''
         self.bn1 = nn.BatchNorm1d(512)
         self.classifier2 = nn.Linear(512, 256)
         self.bn2 = nn.BatchNorm1d(256)
