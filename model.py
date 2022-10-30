@@ -283,6 +283,29 @@ class EfficientNet_B2_Deep(nn.Module):
     def forward(self, x):
         output = self.backbone(x)
         return output
+    
+# EfficientNet_B2 Deepclassifier with BN
+from torchvision.models import efficientnet_b2
+class EfficientNet_B2_Deep_BN(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        self.backbone = efficientnet_b2(weights='DEFAULT')
+        self.backbone.classifier = nn.Sequential(
+            nn.Linear(1408, 512),
+            nn.LeakyReLU(),
+            nn.BatchNorm1d(512),
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(512, 128),
+            nn.LeakyReLU(),
+            nn.BatchNorm1d(512),
+            nn.Dropout(p=0.5, inplace=True),
+            nn.Linear(128, num_classes)
+        )
+
+    def forward(self, x):
+        output = self.backbone(x)
+        return output
+
 
 from torchvision.models import resnext50_32x4d
 class MultiHeadResNext50(nn.Module):
