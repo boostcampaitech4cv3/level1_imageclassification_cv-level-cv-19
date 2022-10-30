@@ -176,9 +176,9 @@ class DenseNet121(nn.Module):
         self.backbone = torch.hub.load('pytorch/vision:v0.14.0', 'densenet121', pretrained=True)
         fc1 = nn.Linear(1024,512)
         self.backbone.classifier = fc1
-        for parameter in self.backbone.parameters():
+        '''for parameter in self.backbone.parameters():
             parameter.requires_grad = False
-        self.backbone.classifier.weight.requires_grad = True
+        self.backbone.classifier.weight.requires_grad = True'''
         self.bn1 = nn.BatchNorm1d(512)
         self.classifier2 = nn.Linear(512, 256)
         self.bn2 = nn.BatchNorm1d(256)
@@ -192,11 +192,11 @@ class DenseNet121(nn.Module):
         x = self.backbone(x)
         x = self.relu(x)
         x = self.bn1(x)
-        x = self.dropout(x)
+        #x = self.dropout(x)
         x = self.classifier2(x)
         x = self.relu(x)
         x = self.bn2(x)
-        x = self.dropout(x)
+        #x = self.dropout(x)
         x = self.classifier3(x)
         x = self.relu(x)
         x = self.bn3(x)
@@ -324,3 +324,42 @@ class MultiHeadResNext50(nn.Module):
         gender = self.gender_classifier(x)
         age = self.age_classifier(x)
         return mask, gender, age
+
+# Convnext_tiny
+from torchvision.models import convnext_tiny, ConvNeXt_Tiny_Weights
+class ConvNext_Tiny(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        
+        self.backbone = convnext_tiny(weights = ConvNeXt_Tiny_Weights.DEFAULT)
+        self.backbone.Linear = nn.Linear(768, num_classes)
+        
+    def forward(self, x):
+        out = self.backbone(x)
+        return out
+
+# Convnext_samll
+from torchvision.models import convnext_small, ConvNeXt_Small_Weights
+class ConvNext_Small(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        
+        self.backbone = convnext_small(weights = ConvNeXt_Small_Weights.DEFAULT)
+        self.backbone.Linear = nn.Linear(768, num_classes)
+        
+    def forward(self, x):
+        out = self.backbone(x)
+        return out
+
+# Convnext_base
+from torchvision.models import convnext_base, ConvNeXt_Base_Weights
+class ConvNext_Base(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        
+        self.backbone = convnext_base(weights = ConvNeXt_Base_Weights.DEFAULT)
+        self.backbone.Linear = nn.Linear(1024, num_classes)
+        
+    def forward(self, x):
+        out = self.backbone(x)
+        return out
