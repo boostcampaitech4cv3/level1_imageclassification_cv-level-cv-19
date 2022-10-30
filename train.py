@@ -478,6 +478,8 @@ def train(data_dir, model_dir, args):
         if args.scheduler != "None":
             if scheduler.__class__.__name__ == "ReduceLROnPlateau":
                 scheduler.step(val_loss) # ReduceLROnPlateau는 추적할 metric을 넣어서 step을 수행한다
+            elif scheduler.__class__.__name__ == "CosineLRScheduler":
+                scheduler.step(epoch)
             else:
                 scheduler.step()
 
@@ -494,7 +496,7 @@ if __name__ == '__main__':
     parser.add_argument("--resize", nargs="+", type=int, default=[128, 96], help='resize size for image when training')
     parser.add_argument('--batch_size', type=int, default=64, help='input batch size for training (default: 64)')
     parser.add_argument('--valid_batch_size', type=int, default=1000, help='input batch size for validing (default: 1000)')
-    parser.add_argument('--model', type=str, default='ResNet50', help='model type (default: ResNet50)')
+    parser.add_argument('--model', type=str, default='BaseModel', help='model type (default: ResNet50)')
     parser.add_argument('--optimizer', type=str, default='Adam', help='optimizer type (default: Adam)')
     parser.add_argument('--lr', type=float, default=1e-3, help='learning rate (default: 1e-3)')
     parser.add_argument('--val_ratio', type=float, default=0.2, help='ratio for validaton (default: 0.2)')
@@ -505,7 +507,7 @@ if __name__ == '__main__':
     parser.add_argument('--cutmix_prob', type=float, default=0, help='cutmix probability')
     parser.add_argument('--beta', type=float, default=0, help='hyperparameter beta')
     parser.add_argument('--sampler', type=str, default='None', help='sampler for imblanced data (default:None), samplers in sampler.py')
-    parser.add_argument('--scheduler', type=str, default='None', help='scheduler(default:None), scheduler list in scheduler.py')
+    parser.add_argument('--scheduler', type=str, default='CosineLRScheduler', help='scheduler(default:None), scheduler list in scheduler.py')
     parser.add_argument('--model_save',type=bool, default=False, help='save model architecture with state_dict')
     
     # Container environment

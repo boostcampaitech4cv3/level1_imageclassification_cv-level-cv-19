@@ -294,11 +294,12 @@ class EfficientNet_B2_Deep_BN(nn.Module):
             nn.Linear(1408, 512),
             nn.LeakyReLU(),
             nn.BatchNorm1d(512),
-            nn.Dropout(p=0.5, inplace=True),
-            nn.Linear(512, 128),
+            nn.Linear(512, 256),
             nn.LeakyReLU(),
-            nn.BatchNorm1d(512),
-            nn.Dropout(p=0.5, inplace=True),
+            nn.BatchNorm1d(256),
+            nn.Linear(256, 128),
+            nn.LeakyReLU(),
+            nn.BatchNorm1d(128),
             nn.Linear(128, num_classes)
         )
 
