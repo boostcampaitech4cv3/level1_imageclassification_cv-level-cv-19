@@ -16,14 +16,21 @@ class scheduler_module():
             'CyclicLR': {'base_lr': 0.001, "max_lr": 0.1}, #  base_lr to max_lr momentum이 있는 optimizer만 사용가능
             'ExponentialLR': {"gamma": 0.95}, # step마다 gamma만큼 지수적으로 감소
             
+            ##timm.scheduler.cosine_lr
+            'CosineLRScheduler': {'t_initial':30, 'cycle_limit':10,'cycle_decay':0.5, 'cycle_mul':1.2, 'lr_min':1e-5, 'warmup_t':10, 'warmup_lr_init':1e-5},
+            
             ## 직접구현 ##
             'WarmupConstant': {"warmup_steps": 5}, # 초반 warmup_step까지 천천히 증가,
-            'SGDR':{"T_0": 10, "T_mult": 1, "eta_max": 0.002,  "T_up": 2, "gamma": 0.5} # https://gaussian37.github.io/dl-pytorch-lr_scheduler/  -> Custom CosineAnnealingWarmRestarts
+            'SGDR_wrong':{"T_0": 10, "T_mult": 1, "eta_max": 0.002,  "T_up": 2, "gamma": 0.5} # https://gaussian37.github.io/dl-pytorch-lr_scheduler/  -> Custom CosineAnnealingWarmRestarts
+            # SGDR 잘못 구현되어 있음
         }
     scheduler_list_implemented = [
             'WarmupConstant',
-            'SGDR'
+            'SGDR_wrong'
         ]
+    scheduler_list_timm = [
+        'CosineLRScheduler'
+    ]
         
         
     @staticmethod
@@ -33,6 +40,8 @@ class scheduler_module():
         
         if scheduler_name in cls.scheduler_list_implemented:
             return getattr(import_module("scheduler"), scheduler_name)(optimizer, **cls.scheduler_dict[scheduler_name])
+        elif scheduler_name in cls.scheduler_list_timm:
+            return getattr(import_module("timm.scheduler.cosine_lr"), scheduler_name)(optimizer, **cls.scheduler_dict[scheduler_name])
         else:
             return getattr(import_module("torch.optim.lr_scheduler"), scheduler_name)(optimizer, **cls.scheduler_dict[scheduler_name])
         
@@ -56,7 +65,7 @@ class WarmupConstant(torch.optim.lr_scheduler.LambdaLR):
 import math
 from torch.optim.lr_scheduler import _LRScheduler
 
-class SGDR(_LRScheduler):
+class SGDR_wrong(_LRScheduler):
     def __init__(self, optimizer, T_0, T_mult=1, eta_max=0.1, T_up=0, gamma=1., last_epoch=-1):
         if T_0 <= 0 or not isinstance(T_0, int):
             raise ValueError("Expected positive integer T_0, but got {}".format(T_0))
@@ -73,7 +82,7 @@ class SGDR(_LRScheduler):
         self.gamma = gamma
         self.cycle = 0
         self.T_cur = last_epoch
-        super(SGDR, self).__init__(optimizer, last_epoch)
+        super(SGDR_wrong, self).__init__(optimizer, last_epoch)
     
     def get_lr(self):
         if self.T_cur == -1:
