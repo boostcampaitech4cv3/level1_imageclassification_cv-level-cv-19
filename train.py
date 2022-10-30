@@ -52,7 +52,7 @@ def grid_image(np_images, gts, preds, n=16, shuffle=False, fig_size = (12,20)):
 
     choices = random.choices(range(batch_size), k=n) if shuffle else list(range(n))
     figure = plt.figure(figsize=fig_size)  # cautions: hardcoded, 이미지 크기에 따라 figsize 를 조정해야 할 수 있습니다. T.T
-    plt.subplots_adjust(top=0.8)  # cautions: hardcoded, 이미지 크기에 따라 top 를 조정해야 할 수 있습니다. T.T
+    plt.subplots_adjust(left = 0.1, right = 0.9, bottom = 0.3, top = 1.7)  # cautions: hardcoded, 이미지 크기에 따라 top 를 조정해야 할 수 있습니다. T.T
     n_grid = int(np.ceil(n ** 0.5))
     tasks = ["mask", "gender", "age"]
     for idx, choice in enumerate(choices):
@@ -67,7 +67,6 @@ def grid_image(np_images, gts, preds, n=16, shuffle=False, fig_size = (12,20)):
             in zip(gt_decoded_labels, pred_decoded_labels, tasks)
         ])
 
-        plt.rc('font', size=7)
         plt.subplot(n_grid, n_grid, idx + 1, title=title)
         plt.xticks([])
         plt.yticks([])
@@ -376,7 +375,7 @@ def train(data_dir, model_dir, args):
             inputs_np_wrong_mask = None;labels_wrong_mask = torch.Tensor([]);preds_wrong_mask = torch.Tensor([])
             inputs_np_wrong_gender = None;labels_wrong_gender = torch.Tensor([]);preds_wrong_gender = torch.Tensor([])
             inputs_np_wrong_age = None;labels_wrong_age = torch.Tensor([]);preds_wrong_age = torch.Tensor([])
-            wrong_flag = args.wrong_fig != -1 and epoch >= args.wrong_fig
+            wrong_flag = epoch in args.wrong_fig
             
             confusion_matrix  = torch.Tensor([[0]])
             confusion_matrix_mask = torch.Tensor([[0]])
@@ -480,24 +479,24 @@ def train(data_dir, model_dir, args):
                 confusion_all_fig.savefig(save_dir+"/best_18_class_confusion_matrix.png")
                 confusion_sep_fig.savefig(save_dir+"/best_sep_class_confusion_matrix.png")
                 
-                if wrong_flag:
-                    print("saving wrong images")
-                    # all wrong images
-                    # inputs_np_wrong = dataset_module.denormalize_image(inputs_np_wrong, dataset.mean, dataset.std)
-                    # figure_wrong = grid_image(inputs_np_wrong, labels_wrong, preds_wrong, n= len(labels_wrong), fig_size = (40,40))
-                    # figure_wrong.savefig(save_dir+"/wrong_image.png")
+            if wrong_flag:
+                print("saving wrong images")
+                # all wrong images
+                # inputs_np_wrong = dataset_module.denormalize_image(inputs_np_wrong, dataset.mean, dataset.std)
+                # figure_wrong = grid_image(inputs_np_wrong, labels_wrong, preds_wrong, n= len(labels_wrong), fig_size = (40,40))
+                # figure_wrong.savefig(save_dir+"/wrong_image.png")
                     
-                    inputs_np_wrong_mask = dataset_module.denormalize_image(inputs_np_wrong_mask, dataset.mean, dataset.std)
-                    figure_wrong_mask = grid_image(inputs_np_wrong_mask, labels_wrong_mask, preds_wrong_mask, n= len(labels_wrong_mask), fig_size = (9,15))
-                    figure_wrong_mask.savefig(save_dir+"/wrong_mask_image.png")
+                inputs_np_wrong_mask = dataset_module.denormalize_image(inputs_np_wrong_mask, dataset.mean, dataset.std)
+                figure_wrong_mask = grid_image(inputs_np_wrong_mask, labels_wrong_mask, preds_wrong_mask, n= len(labels_wrong_mask), fig_size = (64,48))
+                figure_wrong_mask.savefig(save_dir+"/wrong_mask_image.png")
                     
-                    inputs_np_wrong_gender = dataset_module.denormalize_image(inputs_np_wrong_gender, dataset.mean, dataset.std)
-                    figure_wrong_gender = grid_image(inputs_np_wrong_gender, labels_wrong_gender, preds_wrong_gender, n= len(labels_wrong_gender), fig_size = (9,15))
-                    figure_wrong_gender.savefig(save_dir+"/wrong_gender_image.png")
+                inputs_np_wrong_gender = dataset_module.denormalize_image(inputs_np_wrong_gender, dataset.mean, dataset.std)
+                figure_wrong_gender = grid_image(inputs_np_wrong_gender, labels_wrong_gender, preds_wrong_gender, n= len(labels_wrong_gender), fig_size = (64,48))
+                figure_wrong_gender.savefig(save_dir+"/wrong_gender_image.png")
                     
-                    inputs_np_wrong_age = dataset_module.denormalize_image(inputs_np_wrong_age, dataset.mean, dataset.std)
-                    figure_wrong_age = grid_image(inputs_np_wrong_age, labels_wrong_age, preds_wrong_age, n= len(labels_wrong_age), fig_size = (9,15))
-                    figure_wrong_age.savefig(save_dir+"/wrong_age_image.png")
+                inputs_np_wrong_age = dataset_module.denormalize_image(inputs_np_wrong_age, dataset.mean, dataset.std)
+                figure_wrong_age = grid_image(inputs_np_wrong_age, labels_wrong_age, preds_wrong_age, n= len(labels_wrong_age), fig_size = (64,48))
+                figure_wrong_age.savefig(save_dir+"/wrong_age_image.png")
                     
                     
                     
@@ -555,7 +554,7 @@ if __name__ == '__main__':
     parser.add_argument('--sampler', type=str, default='None', help='sampler for imblanced data (default:None), samplers in sampler.py')
     parser.add_argument('--scheduler', type=str, default='None', help='scheduler(default:None), scheduler list in scheduler.py')
     parser.add_argument('--model_save',type=bool, default=False, help='save model architecture with state_dict')
-    parser.add_argument('--wrong_fig',type=int, default=-1, help='visualize wrong figures after args.wrong_fig epoch (default:-1)')
+    parser.add_argument('--wrong_fig',nargs="+",type=int, default=[-1], help='visualize wrong figures when args.wrong_fig == epoch (default:[-1])')
     
     # Container environment
     parser.add_argument('--data_dir', type=str, default=os.environ.get('SM_CHANNEL_TRAIN', '/opt/ml/input/data/train/images'))
