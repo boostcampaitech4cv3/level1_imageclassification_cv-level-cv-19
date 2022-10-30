@@ -8,7 +8,7 @@ import numpy as np
 import torch
 from PIL import Image
 from torch.utils.data import Dataset, Subset, random_split
-from torchvision.transforms import Resize, ToTensor, Normalize, Compose, CenterCrop, ColorJitter, RandomHorizontalFlip, RandomRotation
+from torchvision.transforms import Resize, ToTensor, Normalize, Compose, CenterCrop, ColorJitter, RandomHorizontalFlip, RandomRotation, RandomAffine
 
 IMG_EXTENSIONS = [
     ".jpg", ".JPG", ".jpeg", ".JPEG", ".png",
@@ -100,6 +100,21 @@ class GuCustomAugmentation:
     def __call__(self, image):
         return self.transform(image)
 
+class GUNCustomAugmentation:
+    def __init__(self, resize, mean, std, **args):
+        self.transform = Compose([
+            RandomAffine(degrees = (-10,10), shear = (-10,10)),
+            CenterCrop((320, 256)),
+            Resize(resize, Image.BILINEAR),
+            ColorJitter(0.1, 0.1, 0.1, 0.1),
+            RandomHorizontalFlip(p=0.5),
+            ToTensor(),
+            Normalize(mean=mean, std=std),
+            
+        ])
+
+    def __call__(self, image):
+        return self.transform(image)
 
 
 class MaskLabels(int, Enum):
@@ -522,8 +537,9 @@ class LabelSplitByProfileDataset(LabelSplitDataset):
 
     def __init__(self, data_dir, mean=(0.548, 0.504, 0.479), std=(0.237, 0.247, 0.246), val_ratio=0.2):
         self.indices = defaultdict(list)
+        self.multi_labels = []
         super().__init__(data_dir, mean, std, val_ratio)
-
+        
     @staticmethod
     def _split_profile(profiles, val_ratio):
         length = len(profiles)
@@ -562,9 +578,13 @@ class LabelSplitByProfileDataset(LabelSplitDataset):
                     self.mask_labels.append(mask_label)
                     self.gender_labels.append(gender_label)
                     self.age_labels.append(age_label)
-
                     self.indices[phase].append(cnt)
                     cnt += 1
+                    if phase == "train":
+                        self.multi_labels.append(self.encode_multi_class(mask_label, gender_label, age_label))
 
     def split_dataset(self) -> List[Subset]:
         return [Subset(self, indices) for phase, indices in self.indices.items()]
+
+    def get_multi_labels(self):
+        return self.multi_labels
