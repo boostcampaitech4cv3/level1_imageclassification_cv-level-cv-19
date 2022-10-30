@@ -331,7 +331,7 @@ class ConvNext_Tiny(nn.Module):
         super().__init__()
         
         self.backbone = convnext_tiny(weights = ConvNeXt_Tiny_Weights.DEFAULT)
-        self.backbone.Linear = nn.Linear(768, 768)
+        self.backbone.Linear = nn.Linear(768, num_classes)
         
     def forward(self, x):
         out = self.backbone(x)
