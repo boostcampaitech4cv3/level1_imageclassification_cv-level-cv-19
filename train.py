@@ -16,9 +16,10 @@ from scheduler import scheduler_module
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from dataset import MaskBaseDataset
+from dataset import MaskBaseDataset, MaskLabels, GenderLabels, AgeLabels
 from loss import create_criterion
 from torchmetrics import ConfusionMatrix, F1Score
+from torchmetrics.classification import MulticlassF1Score, MulticlassAccuracy
 import seaborn as sns
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -232,6 +233,23 @@ def train(data_dir, model_dir, args):
     logger = SummaryWriter(log_dir=save_dir)
     with open(os.path.join(save_dir, 'config.json'), 'w', encoding='utf-8') as f:
         json.dump(vars(args), f, ensure_ascii=False, indent=4)
+    layout = {
+        "Train_Val": {
+            "accuracy": ["Multiline", ["Train/accuracy_epcoh", "Val/accuracy"]], 
+            "f1_score": ["Multiline", ["Val/f1_score"]], 
+            "loss": ["Multiline", ['Train/loss_epoch', 'Val/loss']]
+        }, 
+        "3_Task": {
+            "accuracy": ["Multiline", ['task/acc/mask', 'task/acc/gender', 'task/acc/age']], 
+            "f1_score": ["Multiline", ['task/f1/mask', 'task/f1/gender', 'task/f1/age']]
+        }, 
+        "Each_Class": {
+            "mask_f1_score":["Multiline", ["class/f1/MASK", 'class/f1/INCORRECT', 'class/f1/NORMAL']], 
+            "gender_f1_score":["Multiline", ['class/f1/MALE', 'class/f1/FEMALE']],
+            "age_f1_score":["Multiline", ['class/f1/YOUNG', 'class/f1/MIDDLE', 'class/f1/OLD']],
+        }
+    }
+    logger.add_custom_scalars(layout)
 
     best_val_acc = 0
     best_val_loss = np.inf
@@ -245,6 +263,8 @@ def train(data_dir, model_dir, args):
         model.train()
         loss_value = 0
         matches = 0
+        loss_value_sum = 0
+        train_acc_sum = 0
         for idx, train_batch in enumerate(train_loader):
             inputs, labels = train_batch
             inputs = inputs.to(device)
@@ -297,8 +317,16 @@ def train(data_dir, model_dir, args):
                 logger.add_scalar("Train/accuracy", train_acc, epoch * len(train_loader) + idx)
                 logger.add_scalar("lr", current_lr, epoch)
 
+                loss_value_sum += train_loss
+                train_acc_sum += train_acc
                 loss_value = 0
                 matches = 0
+        
+        loss_value_sum /= (len(train_loader)//args.log_interval)
+        train_acc_sum /= (len(train_loader)//args.log_interval)
+        logger.add_scalar("Train/loss_epoch", loss_value_sum, epoch)
+        logger.add_scalar("Train/accuracy_epcoh", train_acc_sum, epoch)
+        
         
 
 
@@ -359,11 +387,35 @@ def train(data_dir, model_dir, args):
             logger.add_figure("val_confusion_matrix_all",confusion_all_fig, epoch)
             logger.add_figure("val_confusion_matrix_sep",confusion_sep_fig, epoch)
             
+            preds_mask, preds_gender, preds_age = MaskBaseDataset.decode_multi_class(preds_expand)
+            labels_mask, labels_gender, labels_age = MaskBaseDataset.decode_multi_class(labels_expand)
+            
+            # -- evaluation functions
             f1 = F1Score(num_classes=num_classes)
+            f1_mask = MulticlassF1Score(num_classes=3)
+            f1_gender = MulticlassF1Score(num_classes=2)
+            f1_age = MulticlassF1Score(num_classes=3)
+            f1_mask_cl = MulticlassF1Score(num_classes=3, average=None)
+            f1_gender_cl = MulticlassF1Score(num_classes=2, average=None)
+            f1_age_cl = MulticlassF1Score(num_classes=3, average=None)
+            
+            # -- evaluation values
             f1_score = f1(preds_expand.type(torch.LongTensor), labels_expand.type(torch.LongTensor)).item()
             val_loss = np.sum(val_loss_items) / len(val_loader)
             val_acc = np.sum(val_acc_items) / len(val_set)
             best_val_loss = min(best_val_loss, val_loss)
+            f1_score_mask = f1_mask(preds_mask, labels_mask)
+            f1_score_gender = f1_gender(preds_gender, labels_gender)
+            f1_score_age = f1_age(preds_age, labels_age)
+            f1_score_mask_cl = f1_mask_cl(preds_mask, labels_mask)
+            f1_score_gender_cl = f1_gender_cl(preds_gender, labels_gender)
+            f1_score_age_cl = f1_age_cl(preds_mask, labels_mask)
+            val_acc_mask = (labels_mask == preds_mask).sum().item() / len(val_set)
+            val_acc_gender = (labels_gender == preds_gender).sum().item() / len(val_set)
+            val_acc_age = (labels_age == preds_age).sum().item() / len(val_set)
+            
+            
+            
             
             flag = True
             if val_acc > best_val_acc:
@@ -406,8 +458,21 @@ def train(data_dir, model_dir, args):
             logger.add_figure("results", figure, epoch)
             logger.add_scalar("early_stopping_count", early_stopping, epoch)
             logger.add_scalar("Val/f1_score", f1_score, epoch)
+            logger.add_scalar('task/f1/mask', f1_score_mask, epoch)
+            logger.add_scalar('task/f1/gender', f1_score_gender, epoch)
+            logger.add_scalar('task/f1/age', f1_score_age, epoch)
+            for i,f in enumerate(f1_score_mask_cl):
+                logger.add_scalar(f'class/f1/{MaskLabels(i).name}', f, epoch)
+            for i,f in enumerate(f1_score_gender_cl):
+                logger.add_scalar(f'class/f1/{GenderLabels(i).name}', f, epoch)
+            for i,f in enumerate(f1_score_age_cl):
+                logger.add_scalar(f'class/f1/{AgeLabels(i).name}', f, epoch)
+            logger.add_scalar('task/acc/mask', val_acc_mask, epoch)
+            logger.add_scalar('task/acc/gender', val_acc_gender, epoch)
+            logger.add_scalar('task/acc/age', val_acc_age, epoch)
             
-            print()
+            
+            print(loss_value_sum, val_loss)
         
         # --scheduler
         if args.scheduler != "None":
