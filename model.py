@@ -126,3 +126,31 @@ class ResNext101(nn.Module):
         x = self.features(x)
         out = self.classifier(x)
         return out
+
+class MultiHeadResNext50(nn.Module):
+    def __init__(self):
+        super().__init__()
+        backbone = resnext101_32x8d(weights='IMAGENET1K_V1')
+        self.features = nn.Sequential(*list(backbone.children())[:-1], nn.Flatten())
+        self.mask_classifier = nn.Sequential(nn.Linear(2048, 1024), nn.LeakyReLU(0.2), nn.BatchNorm1d(1024),
+                                        nn.Linear(1024, 512), nn.LeakyReLU(0.2), nn.BatchNorm1d(512),
+                                        nn.Linear(512, 128), nn.LeakyReLU(0.2), nn.BatchNorm1d(128),
+                                        nn.Linear(128, 3)
+                                        )
+        self.gender_classifier = nn.Sequential(nn.Linear(2048, 1024), nn.LeakyReLU(0.2), nn.BatchNorm1d(1024),
+                                        nn.Linear(1024, 512), nn.LeakyReLU(0.2), nn.BatchNorm1d(512),
+                                        nn.Linear(512, 128), nn.LeakyReLU(0.2), nn.BatchNorm1d(128),
+                                        nn.Linear(128, 2)
+                                        )
+        self.age_classifier = nn.Sequential(nn.Linear(2048, 1024), nn.LeakyReLU(0.2), nn.BatchNorm1d(1024),
+                                        nn.Linear(1024, 512), nn.LeakyReLU(0.2), nn.BatchNorm1d(512),
+                                        nn.Linear(512, 128), nn.LeakyReLU(0.2), nn.BatchNorm1d(128),
+                                        nn.Linear(128, 3)
+                                        )
+
+    def forward(self, x):
+        x = self.features(x)
+        mask = self.mask_classifier(x)
+        gender = self.gender_classifier(x)
+        age = self.age_classifier(x)
+        return mask, gender, age
