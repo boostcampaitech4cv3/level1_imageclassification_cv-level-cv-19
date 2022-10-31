@@ -499,7 +499,7 @@ def train(data_dir, model_dir, args):
             f1_score_age = f1_age(preds_age, labels_age)
             f1_score_mask_cl = f1_mask_cl(preds_mask, labels_mask)
             f1_score_gender_cl = f1_gender_cl(preds_gender, labels_gender)
-            f1_score_age_cl = f1_age_cl(preds_mask, labels_mask)
+            f1_score_age_cl = f1_age_cl(preds_age, labels_age)
             val_acc_mask = (labels_mask == preds_mask).sum().item() / len(val_set)
             val_acc_gender = (labels_gender == preds_gender).sum().item() / len(val_set)
             val_acc_age = (labels_age == preds_age).sum().item() / len(val_set)
