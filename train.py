@@ -251,7 +251,7 @@ def train(data_dir, model_dir, args):
         num_workers=multiprocessing.cpu_count() // 2,
         shuffle=sampler_flag[0],
         pin_memory=use_cuda,
-        drop_last=True,
+        drop_last=False,
         sampler= sampler_flag[1]
     )
 
@@ -261,7 +261,7 @@ def train(data_dir, model_dir, args):
         num_workers=multiprocessing.cpu_count() // 2,
         shuffle=False,
         pin_memory=use_cuda,
-        drop_last=True,
+        drop_last=False,
     )
 
     # -- model
