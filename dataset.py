@@ -103,7 +103,7 @@ class GuCustomAugmentation:
 class GUNCustomAugmentation:
     def __init__(self, resize, mean, std, **args):
         self.transform = Compose([
-            RandomAffine(degrees = (-10,10), shear = (-10,10)),
+            RandomAffine(degrees = (-10,10), shear = (-5,5)),
             CenterCrop((320, 256)),
             Resize(resize, Image.BILINEAR),
             ColorJitter(0.1, 0.1, 0.1, 0.1),
