@@ -107,36 +107,8 @@ class ResNext50(nn.Module):
         
     def forward(self, x):
         x = self.features(x)
-        mask = self.mask_classifier(x)
-        gender = self.gender_classifier(x)
-        age = self.age_classifier(x)
-        return mask, gender, age
-
-# Convnext_tiny
-from torchvision.models import convnext_tiny, ConvNeXt_Tiny_Weights
-class ConvNext_Tiny(nn.Module):
-    def __init__(self, num_classes):
-        super().__init__()
-        
-        self.backbone = convnext_tiny(weights = ConvNeXt_Tiny_Weights.DEFAULT)
-        self.backbone.Linear = nn.Linear(768, num_classes)
-        
-    def forward(self, x):
-        out = self.backbone(x)
+        out = self.classifier(x)
         return out
-
-'''# Convnext_samll
-from torchvision.models import convnext_small, ConvNeXt_Small_Weights
-class ConvNext_Small(nn.Module):
-    def __init__(self, num_classes):
-        super().__init__()
-        
-        self.backbone = convnext_small(weights = ConvNeXt_Small_Weights.DEFAULT)
-        self.backbone.Linear = nn.Linear(768, num_classes)
-        
-    def forward(self, x):
-        out = self.backbone(x)
-        return out'''
 
 from torchvision.models import resnext101_32x8d
 class ResNext101(nn.Module):
@@ -154,3 +126,73 @@ class ResNext101(nn.Module):
         x = self.features(x)
         out = self.classifier(x)
         return out
+
+
+# densenet 121
+import torch
+class DenseNet121(nn.Module):
+    def __init__(self, num_classes = 18):
+        super().__init__()
+        self.backbone = torch.hub.load('pytorch/vision:v0.14.0', 'densenet121', pretrained=True)
+        fc1 = nn.Linear(1024,512)
+        self.backbone.classifier = fc1
+        '''for parameter in self.backbone.parameters():
+            parameter.requires_grad = False
+        self.backbone.classifier.weight.requires_grad = True'''
+        self.bn1 = nn.BatchNorm1d(512)
+        self.classifier2 = nn.Linear(512, 256)
+        self.bn2 = nn.BatchNorm1d(256)
+        self.classifier3 = nn.Linear(256, 128)
+        self.bn3 = nn.BatchNorm1d(128)
+        self.classifier4 = nn.Linear(128, num_classes)
+        self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(p=0.5)
+    
+    def forward(self, x):
+        x = self.backbone(x)
+        x = self.relu(x)
+        x = self.bn1(x)
+        #x = self.dropout(x)
+        x = self.classifier2(x)
+        x = self.relu(x)
+        x = self.bn2(x)
+        #x = self.dropout(x)
+        x = self.classifier3(x)
+        x = self.relu(x)
+        x = self.bn3(x)
+        output = self.classifier4(x)
+        return output
+    
+# densenet201
+class DenseNet201(nn.Module):
+    def __init__(self, num_classes = 18):
+        super().__init__()
+        self.backbone = torch.hub.load('pytorch/vision:v0.14.0', 'densenet201', pretrained=True)
+        fc1 = nn.Linear(1920,1024)
+        self.backbone.classifier = fc1
+        # for parameter in self.backbone.parameters():
+        #     parameter.requires_grad = False
+        # self.backbone.classifier.weight.requires_grad = True
+        self.bn1 = nn.BatchNorm1d(1024)
+        self.classifier2 = nn.Linear(1024, 512)
+        self.bn2 = nn.BatchNorm1d(512)
+        self.classifier3 = nn.Linear(512, 128)
+        self.bn3 = nn.BatchNorm1d(128)
+        self.classifier4 = nn.Linear(128, num_classes)
+        self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(p=0.5)
+    
+    def forward(self, x):
+        x = self.backbone(x)
+        x = self.relu(x)
+        x = self.bn1(x)
+        x = self.dropout(x)
+        x = self.classifier2(x)
+        x = self.relu(x)
+        x = self.bn2(x)
+        x = self.dropout(x)
+        x = self.classifier3(x)
+        x = self.relu(x)
+        x = self.bn3(x)
+        output = self.classifier4(x)
+        return output
