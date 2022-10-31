@@ -278,7 +278,10 @@ def train(data_dir, model_dir, args):
             
     # -- loss & metric
     criterion = create_criterion(args.criterion)  # default: cross_entropy
-    opt_module = getattr(import_module("torch.optim"), args.optimizer)  # default: Adam
+    if args.optimizer == "AdamP":
+        opt_module = getattr(import_module("adamp"), args.optimizer)
+    else:
+        opt_module = getattr(import_module("torch.optim"), args.optimizer)  # default: Adam
     optimizer = opt_module(
         model.parameters(),
         lr=args.lr,
@@ -428,13 +431,13 @@ def train(data_dir, model_dir, args):
                 val_loss_items.append(loss_item)
                 val_acc_items.append(acc_item)
 
-                if figure is None:
-                    inputs_np = torch.clone(inputs).detach().cpu().permute(0, 2, 3, 1).numpy()
-                    inputs_np = dataset_module.denormalize_image(inputs_np, dataset.mean, dataset.std)
-                    figure = grid_image(
-                        inputs_np, labels, preds, n=16, shuffle=args.dataset != "MaskSplitByProfileDataset"
-                    )
-                    logger.add_figure("results", figure, epoch)
+                # if figure is None:
+                #     inputs_np = torch.clone(inputs).detach().cpu().permute(0, 2, 3, 1).numpy()
+                #     inputs_np = dataset_module.denormalize_image(inputs_np, dataset.mean, dataset.std)
+                #     figure = grid_image(
+                #         inputs_np, labels, preds, n=16, shuffle=args.dataset != "MaskSplitByProfileDataset"
+                #     )
+                #     logger.add_figure("results", figure, epoch)
                 
                 preds_mask, preds_gender, preds_age = MaskBaseDataset.decode_multi_class(preds)
                 labels_mask, labels_gender, labels_age = MaskBaseDataset.decode_multi_class(labels)
@@ -474,8 +477,8 @@ def train(data_dir, model_dir, args):
                                  
                         
             confusion_all_fig, confusion_sep_fig = plot_confusion_matrix(confusion_matrix,confusion_matrix_mask, confusion_matrix_gender, confusion_matrix_age)    
-            logger.add_figure("val_confusion_matrix_all",confusion_all_fig, epoch)
-            logger.add_figure("val_confusion_matrix_sep",confusion_sep_fig, epoch)
+            # logger.add_figure("val_confusion_matrix_all",confusion_all_fig, epoch)
+            # logger.add_figure("val_confusion_matrix_sep",confusion_sep_fig, epoch)
             
             preds_mask, preds_gender, preds_age = MaskBaseDataset.decode_multi_class(preds_expand)
             labels_mask, labels_gender, labels_age = MaskBaseDataset.decode_multi_class(labels_expand)
