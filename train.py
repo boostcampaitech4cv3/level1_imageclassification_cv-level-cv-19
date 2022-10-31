@@ -584,7 +584,6 @@ def train(data_dir, model_dir, args):
             logger.add_scalar('task/acc/age', val_acc_age, epoch)
             
             
-            print(loss_value_sum, val_loss)
         
         # --scheduler
         if args.scheduler != "None":
