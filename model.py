@@ -325,13 +325,40 @@ class MultiHeadResNext50(nn.Module):
         age = self.age_classifier(x)
         return mask, gender, age
 
+# Convnext_tiny
 from torchvision.models import convnext_tiny, ConvNeXt_Tiny_Weights
 class ConvNext_Tiny(nn.Module):
     def __init__(self, num_classes):
         super().__init__()
         
         self.backbone = convnext_tiny(weights = ConvNeXt_Tiny_Weights.DEFAULT)
-        self.backbone.Linear = nn.Linear(768, 768)
+        self.backbone.Linear = nn.Linear(768, num_classes)
+        
+    def forward(self, x):
+        out = self.backbone(x)
+        return out
+
+# Convnext_samll
+from torchvision.models import convnext_small, ConvNeXt_Small_Weights
+class ConvNext_Small(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        
+        self.backbone = convnext_small(weights = ConvNeXt_Small_Weights.DEFAULT)
+        self.backbone.Linear = nn.Linear(768, num_classes)
+        
+    def forward(self, x):
+        out = self.backbone(x)
+        return out
+
+# Convnext_base
+from torchvision.models import convnext_base, ConvNeXt_Base_Weights
+class ConvNext_Base(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        
+        self.backbone = convnext_base(weights = ConvNeXt_Base_Weights.DEFAULT)
+        self.backbone.Linear = nn.Linear(1024, num_classes)
         
     def forward(self, x):
         out = self.backbone(x)
