@@ -621,7 +621,7 @@ if __name__ == '__main__':
     parser.add_argument('--sampler', type=str, default='None', help='sampler for imblanced data (default:None), samplers in sampler.py')
     parser.add_argument('--scheduler', type=str, default='None', help='scheduler(default:None), scheduler list in scheduler.py')
     parser.add_argument('--model_save',type=bool, default=False, help='save model architecture with state_dict')
-    parser.add_argument('--wrong_fig',nargs="+",type=int, default=[24], help='visualize wrong figures when args.wrong_fig == epoch (default:[-1])')
+    parser.add_argument('--wrong_fig',nargs="+",type=int, default=[-1], help='visualize wrong figures when args.wrong_fig == epoch (default:[-1])')
     
     # Container environment
     parser.add_argument('--data_dir', type=str, default=os.environ.get('SM_CHANNEL_TRAIN', '/opt/ml/input/data/train/images'))
