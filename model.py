@@ -325,6 +325,47 @@ class MultiHeadResNext50(nn.Module):
         age = self.age_classifier(x)
         return mask, gender, age
 
+
+class MultiHeadResNext50_deep(nn.Module):
+    def __init__(self):
+        super().__init__()
+        backbone = resnext50_32x4d(weights='IMAGENET1K_V1')
+        self.features = nn.Sequential(*list(backbone.children())[:-1], nn.Flatten())
+        self.mask_classifier = nn.Sequential(nn.Linear(2048, 1024), nn.Linear(1024, 3))
+        self.gender_classifier = nn.Sequential(nn.Linear(2048, 1024), nn.Linear(1024, 2))
+        self.age_classifier = nn.Sequential(nn.Linear(2048, 1024), nn.Linear(1024, 3))
+ 
+    def forward(self, x):
+        x = self.features(x)
+        mask = self.mask_classifier(x)
+        gender = self.gender_classifier(x)
+        age = self.age_classifier(x)
+        return mask, gender, age
+
+class ResNext50_deep(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        backbone = resnext50_32x4d(weights='IMAGENET1K_V1')
+        self.features = nn.Sequential(*list(backbone.children())[:-1], nn.Flatten())
+        self.classifier = nn.Sequential(nn.Linear(2048, 1024), nn.Linear(1024, num_classes))
+        
+    def forward(self, x):
+        x = self.features(x)
+        out = self.classifier(x)
+        return out
+
+class ResNext101_deep(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        backbone = resnext101_64x4d(weights='IMAGENET1K_V1')
+        self.features = nn.Sequential(*list(backbone.children())[:-1], nn.Flatten())
+        self.classifier = nn.Sequential(nn.Linear(2048, 1024), nn.Linear(1024, num_classes))
+        
+    def forward(self, x):
+        x = self.features(x)
+        out = self.classifier(x)
+        return out
+
 # Convnext_tiny
 from torchvision.models import convnext_tiny, ConvNeXt_Tiny_Weights
 class ConvNext_Tiny(nn.Module):
