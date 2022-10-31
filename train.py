@@ -481,7 +481,7 @@ def train(data_dir, model_dir, args):
             labels_mask, labels_gender, labels_age = MaskBaseDataset.decode_multi_class(labels_expand)
             
             # -- evaluation functions
-            f1 = F1Score(num_classes=num_classes)
+            f1 = MulticlassF1Score(num_classes=num_classes)
             f1_mask = MulticlassF1Score(num_classes=3)
             f1_gender = MulticlassF1Score(num_classes=2)
             f1_age = MulticlassF1Score(num_classes=3)
@@ -608,7 +608,7 @@ if __name__ == '__main__':
     parser.add_argument("--resize", nargs="+", type=int, default=[128, 96], help='resize size for image when training')
     parser.add_argument('--batch_size', type=int, default=64, help='input batch size for training (default: 64)')
     parser.add_argument('--valid_batch_size', type=int, default=1000, help='input batch size for validing (default: 1000)')
-    parser.add_argument('--model', type=str, default='ResNet50', help='model type (default: ResNet50)')
+    parser.add_argument('--model', type=str, default='EfficientNet_B2', help='model type (default: ResNet50)')
     parser.add_argument('--optimizer', type=str, default='Adam', help='optimizer type (default: Adam)')
     parser.add_argument('--lr', type=float, default=1e-3, help='learning rate (default: 1e-3)')
     parser.add_argument('--val_ratio', type=float, default=0.2, help='ratio for validaton (default: 0.2)')
