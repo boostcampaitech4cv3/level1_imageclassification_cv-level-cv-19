@@ -280,7 +280,7 @@ def train(data_dir, model_dir, args):
     criterion = create_criterion(args.criterion)  # default: cross_entropy
     opt_module = getattr(import_module("torch.optim"), args.optimizer)  # default: Adam
     optimizer = opt_module(
-        filter(lambda p: p.requires_grad, model.parameters()),
+        model.parameters(),
         lr=args.lr,
         weight_decay=5e-4
     )
@@ -499,7 +499,7 @@ def train(data_dir, model_dir, args):
             f1_score_age = f1_age(preds_age, labels_age)
             f1_score_mask_cl = f1_mask_cl(preds_mask, labels_mask)
             f1_score_gender_cl = f1_gender_cl(preds_gender, labels_gender)
-            f1_score_age_cl = f1_age_cl(preds_mask, labels_mask)
+            f1_score_age_cl = f1_age_cl(preds_age, labels_age)
             val_acc_mask = (labels_mask == preds_mask).sum().item() / len(val_set)
             val_acc_gender = (labels_gender == preds_gender).sum().item() / len(val_set)
             val_acc_age = (labels_age == preds_age).sum().item() / len(val_set)
@@ -608,7 +608,7 @@ if __name__ == '__main__':
     parser.add_argument("--resize", nargs="+", type=int, default=[128, 96], help='resize size for image when training')
     parser.add_argument('--batch_size', type=int, default=64, help='input batch size for training (default: 64)')
     parser.add_argument('--valid_batch_size', type=int, default=1000, help='input batch size for validing (default: 1000)')
-    parser.add_argument('--model', type=str, default='BaseModel', help='model type (default: ResNet50)')
+    parser.add_argument('--model', type=str, default='ResNet50', help='model type (default: ResNet50)')
     parser.add_argument('--optimizer', type=str, default='Adam', help='optimizer type (default: Adam)')
     parser.add_argument('--lr', type=float, default=1e-3, help='learning rate (default: 1e-3)')
     parser.add_argument('--val_ratio', type=float, default=0.2, help='ratio for validaton (default: 0.2)')
@@ -619,9 +619,9 @@ if __name__ == '__main__':
     parser.add_argument('--cutmix_prob', type=float, default=0, help='cutmix probability')
     parser.add_argument('--beta', type=float, default=0, help='hyperparameter beta')
     parser.add_argument('--sampler', type=str, default='None', help='sampler for imblanced data (default:None), samplers in sampler.py')
-    parser.add_argument('--scheduler', type=str, default='CosineLRScheduler', help='scheduler(default:None), scheduler list in scheduler.py')
+    parser.add_argument('--scheduler', type=str, default='None', help='scheduler(default:None), scheduler list in scheduler.py')
     parser.add_argument('--model_save',type=bool, default=False, help='save model architecture with state_dict')
-    parser.add_argument('--wrong_fig',nargs="+",type=int, default=[-1], help='visualize wrong figures when args.wrong_fig == epoch (default:[-1])')
+    parser.add_argument('--wrong_fig',nargs="+",type=int, default=[24], help='visualize wrong figures when args.wrong_fig == epoch (default:[-1])')
     
     # Container environment
     parser.add_argument('--data_dir', type=str, default=os.environ.get('SM_CHANNEL_TRAIN', '/opt/ml/input/data/train/images'))
