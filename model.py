@@ -338,7 +338,7 @@ class ConvNext_Tiny(nn.Module):
         out = self.backbone(x)
         return out
 
-# Convnext_samll
+'''# Convnext_samll
 from torchvision.models import convnext_small, ConvNeXt_Small_Weights
 class ConvNext_Small(nn.Module):
     def __init__(self, num_classes):
@@ -349,7 +349,7 @@ class ConvNext_Small(nn.Module):
         
     def forward(self, x):
         out = self.backbone(x)
-        return out
+        return out'''
 
 # Convnext_base
 from torchvision.models import convnext_base, ConvNeXt_Base_Weights
