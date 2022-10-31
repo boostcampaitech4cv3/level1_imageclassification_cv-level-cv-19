@@ -74,7 +74,7 @@ class ResNext101(nn.Module):
         self.features = nn.Sequential(*list(backbone.children())[:-1], nn.Flatten())
         self.classifier = nn.Sequential(nn.Linear(2048, 1024), nn.LeakyReLU(0.2), nn.BatchNorm1d(1024),
                                         nn.Linear(1024, 512), nn.LeakyReLU(0.2), nn.BatchNorm1d(512),
-                                        nn.Linear(512, 128), nn.LeakyReLU(0.2), nn.BatchNorm1d(512),
+                                        nn.Linear(512, 128), nn.LeakyReLU(0.2), nn.BatchNorm1d(128),
                                         nn.Linear(128, num_classes)
                                         )
         
