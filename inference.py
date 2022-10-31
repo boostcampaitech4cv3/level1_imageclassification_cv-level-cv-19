@@ -7,7 +7,11 @@ import pandas as pd
 import torch
 from torch.utils.data import DataLoader
 
-from dataset import TestDataset, MaskBaseDataset
+from dataset import MaskBaseDataset
+
+# 경고 off
+import warnings
+warnings.filterwarnings(action='ignore')
 
 
 def load_model(saved_model, num_classes, device):
@@ -40,7 +44,7 @@ def inference(data_dir, model_dir, output_dir, args):
     info = pd.read_csv(info_path)
 
     img_paths = [os.path.join(img_root, img_id) for img_id in info.ImageID]
-    dataset = TestDataset(img_paths, args.resize)
+    dataset = getattr(import_module("dataset"), args.dataset)(img_paths, args.resize)
     loader = torch.utils.data.DataLoader(
         dataset,
         batch_size=args.batch_size,
@@ -73,6 +77,7 @@ if __name__ == '__main__':
     parser.add_argument('--resize', type=tuple, default=(128, 96), help='resize size for image when you trained (default: (96, 128))')
     parser.add_argument('--model', type=str, default='ResNet50', help='model type (default: ResNet50)')
     parser.add_argument('--model_weight', type=str, default='best_acc.pth', help='best_acc/best_f1/last (default: best_acc.pth)')
+    parser.add_argument('--dataset', type=str, default='TestDataset', help="dataset (default: TestDataset)")
 
     # Container environment
     parser.add_argument('--data_dir', type=str, default=os.environ.get('SM_CHANNEL_EVAL', '/opt/ml/input/data/eval'))
@@ -89,3 +94,4 @@ if __name__ == '__main__':
     os.makedirs(output_dir, exist_ok=True)
 
     inference(data_dir, model_dir, output_dir, args)
+    

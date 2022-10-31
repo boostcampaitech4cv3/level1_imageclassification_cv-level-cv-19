@@ -103,7 +103,7 @@ class GuCustomAugmentation:
 class GUNCustomAugmentation:
     def __init__(self, resize, mean, std, **args):
         self.transform = Compose([
-            RandomAffine(degrees = (-10,10), shear = (-10,10)),
+            RandomAffine(degrees = (-10,10), shear = (-5,5)),
             CenterCrop((320, 256)),
             Resize(resize, Image.BILINEAR),
             ColorJitter(0.1, 0.1, 0.1, 0.1),
@@ -383,6 +383,7 @@ class TestDataset(Dataset):
     def __init__(self, img_paths, resize, mean=(0.548, 0.504, 0.479), std=(0.237, 0.247, 0.246)):
         self.img_paths = img_paths
         self.transform = Compose([
+            CenterCrop((320, 256)),
             Resize(resize, Image.BILINEAR),
             ToTensor(),
             Normalize(mean=mean, std=std),
