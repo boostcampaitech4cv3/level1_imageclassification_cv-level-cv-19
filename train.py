@@ -493,7 +493,6 @@ def train(data_dir, model_dir, args):
             f1_score = f1(preds_expand.type(torch.LongTensor), labels_expand.type(torch.LongTensor)).item()
             val_loss = np.sum(val_loss_items) / len(val_loader)
             val_acc = np.sum(val_acc_items) / len(val_set)
-            best_val_loss = min(best_val_loss, val_loss)
             f1_score_mask = f1_mask(preds_mask, labels_mask)
             f1_score_gender = f1_gender(preds_gender, labels_gender)
             f1_score_age = f1_age(preds_age, labels_age)
@@ -506,24 +505,22 @@ def train(data_dir, model_dir, args):
             
             
             
-            
             flag = True
-            if val_acc > best_val_acc:
-                print(f"New best model for val accuracy : {val_acc:4.2%}! saving the best model..")
-                torch.save(model.module.state_dict(), f"{save_dir}/best_acc.pth")
-                if args.model_save:
-                    torch.save(model, f"{save_dir}/best_acc.pt")
-                best_val_acc = val_acc
-                early_stopping = args.patient
-                flag = False
+            # if val_acc > best_val_acc:
+            #     print(f"New best model for val accuracy : {val_acc:4.2%}! saving the best model..")
+            #     torch.save(model.module.state_dict(), f"{save_dir}/{epoch}best_acc{val_acc}{}.pth")
+            #     if args.model_save:
+            #         torch.save(model, f"{save_dir}/{epoch}best_acc{val_acc}.pt")
+            #     best_val_acc = val_acc
+            #     flag = False
                 
             if f1_score > best_f1_score:
                 print(f"New best model for f1 score : {f1_score:4.4}! saving the best model..")
-                torch.save(model.module.state_dict(), f"{save_dir}/best_f1.pth")
+                torch.save(model.module.state_dict(), f"{save_dir}/{epoch}_best_f1_{f1_score:4.3}_{val_acc:4.3}.pth")
                 if args.model_save:
-                    torch.save(model, f"{save_dir}/best_f1.pt")
+                    torch.save(model, f"{save_dir}/{epoch}best_f1{f1_score:4.4}_{val_acc:4.4}.pth")
                 best_f1_score = f1_score
-                early_stopping = args.patient
+                best_val_acc = val_acc
                 flag = False
             
             if flag == False:
@@ -550,21 +547,21 @@ def train(data_dir, model_dir, args):
                 figure_wrong_age = grid_image(inputs_np_wrong_age, labels_wrong_age, preds_wrong_age, n= len(labels_wrong_age), fig_size = (64,48))
                 figure_wrong_age.savefig(save_dir+"/wrong_age_image.png")
                     
-                    
-                    
-                
-            if flag:
+            # --early stopping
+            if val_loss < best_val_loss:
+                early_stopping = args.patient
+                best_val_loss = val_loss
+            else:
                 early_stopping = early_stopping -1
                 print(f"patient_left: {early_stopping}")
-                if early_stopping == 0:
-                    torch.save(model.module.state_dict(), f"{save_dir}/last.pth")
-                    if args.model_save:
-                        torch.save(model, f"{save_dir}/last.pt")                 
+                if early_stopping == 0:                
                     print("early_stopping, save last model as last.pth")
-                    break                    
+                    break         
+                        
+                                    
             print(
                 f"[Val] acc : {val_acc:4.2%}, loss: {val_loss:4.2}, f1: {f1_score:4.4}|| "
-                f"best acc : {best_val_acc:4.2%}, best loss: {best_val_loss:4.2}, best f1: {best_f1_score:4.4}"
+                f"best loss: {best_val_loss:4.2}, best f1: {best_f1_score:4.4}, acc for best f1 : {best_val_acc:4.2%}"
             )
             logger.add_scalar("Val/loss", val_loss, epoch)
             logger.add_scalar("Val/accuracy", val_acc, epoch)
@@ -583,8 +580,7 @@ def train(data_dir, model_dir, args):
             logger.add_scalar('task/acc/gender', val_acc_gender, epoch)
             logger.add_scalar('task/acc/age', val_acc_age, epoch)
             
-            
-            print(loss_value_sum, val_loss)
+        
         
         # --scheduler
         if args.scheduler != "None":
