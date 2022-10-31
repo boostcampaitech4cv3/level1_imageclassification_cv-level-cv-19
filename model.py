@@ -1,3 +1,4 @@
+import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
@@ -150,3 +151,59 @@ class ResNext101(nn.Module):
         x = self.features(x)
         out = self.classifier(x)
         return out
+
+from torchvision.models import convnext_tiny, ConvNeXt_Tiny_Weights
+class ConvNext_Tiny(nn.Module): 
+    def __init__(self,num_classes): 
+        super().__init__()
+        self.backbone = convnext_tiny(weights = ConvNeXt_Tiny_Weights.DEFAULT)
+        self.backbone.classifier = nn.Sequential(
+            self.LayerNorm2d((768,), eps=1e-06, elementwise_affine=True),
+            nn.Flatten(start_dim=1, end_dim=-1),
+            nn.Linear(in_features=768, out_features=256, bias=True),
+            nn.ReLU(),
+            nn.BatchNorm1d(256),
+            nn.Linear(in_features=256, out_features=64, bias=True),
+            nn.ReLU(),
+            nn.BatchNorm1d(64),
+            nn.Linear(in_features=64, out_features=num_classes, bias=True)
+        )
+    
+    def forward(self, x):
+        out = self.backbone(x)
+        return out
+    
+    class LayerNorm2d(nn.LayerNorm):
+        def forward(self, x: torch.Tensor) -> torch.Tensor:
+            x = x.permute(0, 2, 3, 1)
+            x = F.layer_norm(x, self.normalized_shape, self.weight, self.bias, self.eps)
+            x = x.permute(0, 3, 1, 2)
+            return x
+
+from torchvision.models import convnext_small, ConvNeXt_Small_Weights
+class ConvNext_Small(nn.Module): 
+    def __init__(self,num_classes): 
+        super().__init__()
+        self.backbone = convnext_small(weights = ConvNeXt_Small_Weights.DEFAULT)
+        self.backbone.classifier = nn.Sequential(
+            self.LayerNorm2d((768,), eps=1e-06, elementwise_affine=True),
+            nn.Flatten(start_dim=1, end_dim=-1),
+            nn.Linear(in_features=768, out_features=256, bias=True),
+            nn.ReLU(),
+            nn.BatchNorm1d(256),
+            nn.Linear(in_features=256, out_features=64, bias=True),
+            nn.ReLU(),
+            nn.BatchNorm1d(64),
+            nn.Linear(in_features=64, out_features=num_classes, bias=True)
+        )
+    
+    def forward(self, x):
+        out = self.backbone(x)
+        return out
+    
+    class LayerNorm2d(nn.LayerNorm):
+        def forward(self, x: torch.Tensor) -> torch.Tensor:
+            x = x.permute(0, 2, 3, 1)
+            x = F.layer_norm(x, self.normalized_shape, self.weight, self.bias, self.eps)
+            x = x.permute(0, 3, 1, 2)
+            return x
