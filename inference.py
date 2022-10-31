@@ -22,21 +22,21 @@ def load_model(saved_model, num_classes, device):
     # tar = tarfile.open(tarpath, 'r:gz')
     # tar.extractall(path=saved_model)
 
-    model_path = os.path.join(saved_model, args.model_weight)
+    model_path = os.path.join(saved_model)
     model.load_state_dict(torch.load(model_path, map_location=device))
 
     return model
 
 
 @torch.no_grad()
-def inference(data_dir, model_dir, output_dir, args):
+def inference(data_dir, model_path, output_dir, args):
     """
     """
     use_cuda = torch.cuda.is_available()
     device = torch.device("cuda" if use_cuda else "cpu")
 
     num_classes = MaskBaseDataset.num_classes  # 18
-    model = load_model(model_dir, num_classes, device).to(device)
+    model = load_model(model_path, num_classes, device).to(device)
     model.eval()
 
     img_root = os.path.join(data_dir, 'images')
@@ -76,22 +76,21 @@ if __name__ == '__main__':
     parser.add_argument('--batch_size', type=int, default=1000, help='input batch size for validing (default: 1000)')
     parser.add_argument('--resize', type=tuple, default=(128, 96), help='resize size for image when you trained (default: (96, 128))')
     parser.add_argument('--model', type=str, default='ResNet50', help='model type (default: ResNet50)')
-    parser.add_argument('--model_weight', type=str, default='best_acc.pth', help='best_acc/best_f1/last (default: best_acc.pth)')
     parser.add_argument('--dataset', type=str, default='TestDataset', help="dataset (default: TestDataset)")
 
     # Container environment
     parser.add_argument('--data_dir', type=str, default=os.environ.get('SM_CHANNEL_EVAL', '/opt/ml/input/data/eval'))
-    parser.add_argument('--model_dir', type=str, default=os.environ.get('SM_CHANNEL_MODEL', './model/exp'))
+    parser.add_argument('--model_path', type=str, default=os.environ.get('SM_CHANNEL_MODEL', './model/exp'), help= ("best model state_dict file path"))
     parser.add_argument('--output_dir', type=str, default=os.environ.get('SM_OUTPUT_DATA_DIR', './output'))
     
 
     args = parser.parse_args()
 
     data_dir = args.data_dir
-    model_dir = args.model_dir
+    model_path = args.model_path
     output_dir = args.output_dir
 
     os.makedirs(output_dir, exist_ok=True)
 
-    inference(data_dir, model_dir, output_dir, args)
+    inference(data_dir, model_path, output_dir, args)
     
