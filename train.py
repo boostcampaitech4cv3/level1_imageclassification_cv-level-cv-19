@@ -253,8 +253,9 @@ def train(data_dir, model_dir, args):
         shuffle=sampler_flag[0],
         pin_memory=use_cuda,
         drop_last=False,
-        sampler= sampler_flag[1]
+        sampler= sampler_flag[1],
     )
+
 
     val_loader = DataLoader(
         val_set,
@@ -264,7 +265,7 @@ def train(data_dir, model_dir, args):
         pin_memory=use_cuda,
         drop_last=False,
     )
-
+    
     # -- model
     model_module = getattr(import_module("model"), args.model)  # default: ResNet50
     model = model_module(num_classes=num_classes).to(device)
@@ -416,7 +417,7 @@ def train(data_dir, model_dir, args):
             
             preds_expand = torch.tensor([])
             labels_expand = torch.tensor([])
-            
+           
             for val_batch in val_loader:
                 inputs, labels = val_batch
                 inputs = inputs.to(device)
