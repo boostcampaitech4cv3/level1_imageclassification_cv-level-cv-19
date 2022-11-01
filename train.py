@@ -53,7 +53,8 @@ def grid_image(np_images, gts, preds, n=16, shuffle=False, fig_size = (12,20)):
 
     choices = random.choices(range(batch_size), k=n) if shuffle else list(range(n))
     figure = plt.figure(figsize=fig_size)  # cautions: hardcoded, 이미지 크기에 따라 figsize 를 조정해야 할 수 있습니다. T.T
-    plt.subplots_adjust(left = 0.1, right = 0.9, bottom = 0.3, top = 1.7)  # cautions: hardcoded, 이미지 크기에 따라 top 를 조정해야 할 수 있습니다. T.T
+    #plt.subplots_adjust(left = 0.1, right = 0.9, bottom = 0.3, top = 1.7)  # cautions: hardcoded, 이미지 크기에 따라 top 를 조정해야 할 수 있습니다. T.T
+    plt.subplots_adjust(top=0.8)
     n_grid = int(np.ceil(n ** 0.5))
     tasks = ["mask", "gender", "age"]
     for idx, choice in enumerate(choices):
@@ -431,13 +432,13 @@ def train(data_dir, model_dir, args):
                 val_loss_items.append(loss_item)
                 val_acc_items.append(acc_item)
 
-                # if figure is None:
-                #     inputs_np = torch.clone(inputs).detach().cpu().permute(0, 2, 3, 1).numpy()
-                #     inputs_np = dataset_module.denormalize_image(inputs_np, dataset.mean, dataset.std)
-                #     figure = grid_image(
-                #         inputs_np, labels, preds, n=16, shuffle=args.dataset != "MaskSplitByProfileDataset"
-                #     )
-                #     logger.add_figure("results", figure, epoch)
+                if figure is None and epoch == 0:
+                    inputs_np = torch.clone(inputs).detach().cpu().permute(0, 2, 3, 1).numpy()
+                    inputs_np = dataset_module.denormalize_image(inputs_np, dataset.mean, dataset.std)
+                    figure = grid_image(
+                        inputs_np, labels, preds, n=16, shuffle=args.dataset != "MaskSplitByProfileDataset"
+                    )
+                    logger.add_figure("results", figure, epoch)
                 
                 preds_mask, preds_gender, preds_age = MaskBaseDataset.decode_multi_class(preds)
                 labels_mask, labels_gender, labels_age = MaskBaseDataset.decode_multi_class(labels)
@@ -633,4 +634,3 @@ if __name__ == '__main__':
     model_dir = args.model_dir
 
     train(data_dir, model_dir, args)
-    

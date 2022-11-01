@@ -80,7 +80,7 @@ if __name__ == '__main__':
 
     # Container environment
     parser.add_argument('--data_dir', type=str, default=os.environ.get('SM_CHANNEL_EVAL', '/opt/ml/input/data/eval'))
-    parser.add_argument('--model_path', type=str, default=os.environ.get('SM_CHANNEL_MODEL', './model/exp'), help= ("best model state_dict file path"))
+    parser.add_argument('--model_path', type=str, default=os.environ.get('SM_CHANNEL_MODEL', '/opt/ml/model/1101ConvNext_focalwithls/2_best_f1_0.792_0.903.pth'), help= ("best model state_dict file path"))
     parser.add_argument('--output_dir', type=str, default=os.environ.get('SM_OUTPUT_DATA_DIR', './output'))
     
 
