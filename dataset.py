@@ -8,7 +8,7 @@ import numpy as np
 import torch
 from PIL import Image
 from torch.utils.data import Dataset, Subset, random_split
-from torchvision.transforms import Resize, ToTensor, Normalize, Compose, CenterCrop, ColorJitter, RandomHorizontalFlip, RandomRotation, RandomAffine, RandomGrayscale, Grayscale
+from torchvision.transforms import RandomAdjustSharpness, Resize, ToTensor, Normalize, Compose, CenterCrop, ColorJitter, RandomHorizontalFlip, RandomRotation, RandomAffine, RandomGrayscale, Grayscale
 
 IMG_EXTENSIONS = [
     ".jpg", ".JPG", ".jpeg", ".JPEG", ".png",
@@ -55,15 +55,17 @@ class AddRandomGaussianNoise(object):
         직접 구현하여 사용할 수 있습니다.
     """
 
-    def __init__(self, mean=0., std=0.01, p = 0.5):
+    def __init__(self, mean=0., std=0.025, p = 0.5):
         self.std = std
         self.mean = mean
         self.p = p
 
     def __call__(self, tensor):
         r = np.random.rand(1)
+        n = np.random.randint(4)
+
         if r > self.p:
-            return tensor + torch.randn(tensor.size()) * self.std + self.mean
+            return tensor + torch.randn(tensor.size()) * self.std * n + self.mean
         else:
             return tensor
 
@@ -92,6 +94,7 @@ class GuCustomAugmentation:
             Resize(resize, Image.BILINEAR),
             ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1),
             RandomHorizontalFlip(p=0.5),
+            RandomAdjustSharpness(sharpness_factor=2),
             ToTensor(),
             Normalize(mean=mean, std=std),
             AddRandomGaussianNoise(p=0.5)
@@ -452,6 +455,89 @@ class MaskSplitByProfileDataset(MaskBaseDataset):
     def get_multi_labels(self):
         return self.multi_labels
         
+class MaskSplitByProfileDatasetByClass(MaskBaseDataset):
+    """
+        train / val 나누는 기준을 이미지에 대해서 random 이 아닌
+        사람(profile)을 기준으로 나눕니다.
+        구현은 val_ratio 에 맞게 train / val 나누는 것을 이미지 전체가 아닌 사람(profile)에 대해서 진행하여 indexing 을 합니다
+        이후 `split_dataset` 에서 index 에 맞게 Subset 으로 dataset 을 분기합니다.
+    """
+
+    def __init__(self, data_dir, mean=(0.548, 0.504, 0.479), std=(0.237, 0.247, 0.246), val_ratio=0.2):
+        self.indices = defaultdict(list)
+        self.multi_labels = []
+        super().__init__(data_dir, mean, std, val_ratio)
+
+    @staticmethod
+    def _split_profile(profiles, val_ratio, fname_by_labels):
+        length = len(profiles)
+        n_val = int(length * val_ratio) 
+
+        # ----- 바꿔야 할 부분 -----
+        val_profiles = set()
+        train_profiles = set()
+        for fns in fname_by_labels:
+            label_len = len(fns)
+            
+            val_sample = random.sample(fns, int(label_len*val_ratio))
+            val_profiles.update(val_sample)
+            
+            train_sample = set(fns).difference(val_sample)
+            train_profiles.update(train_sample)
+        # --------------------------
+        
+        return {
+            "train": train_profiles,
+            "val": val_profiles
+        }
+
+    def setup(self):
+        profiles = os.listdir(self.data_dir)
+        profiles = [profile for profile in profiles if not profile.startswith(".")]
+        
+        # --gender, age 별로 폴더명 담기
+        fname_by_labels = [[] for _ in range(6)]
+
+        for profile in profiles:
+            img_folder = os.path.join(self.data_dir, profile)
+            id, gender, race, age = profile.split("_")
+            gender_label = GenderLabels.from_str(gender)
+            age_label = AgeLabels.from_number(age)
+            fname_by_labels[gender_label.value*3+age_label.value].append(profile)
+        # -------------------------------
+        
+        split_profiles = self._split_profile(profiles, self.val_ratio, fname_by_labels)
+
+        cnt = 0
+        for phase, prfs in split_profiles.items():
+            for profile in prfs:
+                img_folder = os.path.join(self.data_dir, profile)
+                for file_name in os.listdir(img_folder):
+                    _file_name, ext = os.path.splitext(file_name)
+                    if _file_name not in self._file_names:  # "." 로 시작하는 파일 및 invalid 한 파일들은 무시합니다
+                        continue
+
+                    img_path = os.path.join(self.data_dir, profile, file_name)  # (resized_data, 000004_male_Asian_54, mask1.jpg)
+                    mask_label = self._file_names[_file_name]
+
+                    id, gender, race, age = profile.split("_")
+                    gender_label = GenderLabels.from_str(gender)
+                    age_label = AgeLabels.from_number(age)
+
+                    self.image_paths.append(img_path)
+                    self.mask_labels.append(mask_label)
+                    self.gender_labels.append(gender_label)
+                    self.age_labels.append(age_label)
+                    self.indices[phase].append(cnt)
+                    cnt += 1
+                    if phase == "train":
+                        self.multi_labels.append(self.encode_multi_class(mask_label, gender_label, age_label))
+
+    def split_dataset(self) -> List[Subset]:
+        return [Subset(self, indices) for phase, indices in self.indices.items()]
+    
+    def get_multi_labels(self):
+        return self.multi_labels
 
 # 3-body dataset
 class Three_Body_MaskBaseDataset(MaskBaseDataset):
