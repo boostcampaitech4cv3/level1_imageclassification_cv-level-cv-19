@@ -9,18 +9,18 @@ class scheduler_module():
     # scheduler_dict안의 변수들을 바꿔서 customizing
     scheduler_dict = {
             ## torch.optim.lr_scheduler ##
-            'StepLR': {'step_size': 1, 'gamma': 0.5}, # 각 step_size마다 gamma 만큼 감소
+            'StepLR': {'step_size': 10, 'gamma': 0.5}, # 각 step_size마다 gamma 만큼 감소
             'MultiStepLR': {'milestones': [5,10], 'gamma':0.5}, # 각 milestone마다 gamma 만큼 감소
-            'ReduceLROnPlateau' : {'factor': 0.1, 'patience': 10}, # patinet 동안 개선이 없으면, 
-            'CosineAnnealingLR' : {'T_max': 2, "eta_min":0.}, # T_max 주기마다 cos 반복
-            'CyclicLR': {'base_lr': 0.001, "max_lr": 0.1}, #  base_lr to max_lr momentum이 있는 optimizer만 사용가능
+            'ReduceLROnPlateau' : {'factor': 0.5, 'patience': 10}, # patinet 동안 개선이 없으면, 
+            'CosineAnnealingLR' : {'T_max': 10, "eta_min":0.00001}, # T_max 주기마다 cos 반복
+            'CyclicLR': {'base_lr': 1e-5, "max_lr": 0.01}, #  base_lr to max_lr momentum이 있는 optimizer만 사용가능
             'ExponentialLR': {"gamma": 0.95}, # step마다 gamma만큼 지수적으로 감소
             
             ##timm.scheduler.cosine_lr
-            'CosineLRScheduler': {'t_initial':30, 'cycle_limit':10,'cycle_decay':0.5, 'cycle_mul':1.2, 'lr_min':1e-5, 'warmup_t':10, 'warmup_lr_init':1e-5},
+            'CosineLRScheduler': {'t_initial':10, 'cycle_limit':10,'cycle_decay':0.5, 'cycle_mul':1.2, 'lr_min':1e-5, 'warmup_t':3, 'warmup_lr_init':1e-5},
             
             ## 직접구현 ##
-            'WarmupConstant': {"warmup_steps": 5}, # 초반 warmup_step까지 천천히 증가,
+            'WarmupConstant': {"warmup_steps": 10}, # 초반 warmup_step까지 천천히 증가,
             'SGDR_wrong':{"T_0": 10, "T_mult": 1, "eta_max": 0.002,  "T_up": 2, "gamma": 0.5} # https://gaussian37.github.io/dl-pytorch-lr_scheduler/  -> Custom CosineAnnealingWarmRestarts
             # SGDR 잘못 구현되어 있음
         }
