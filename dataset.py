@@ -55,7 +55,7 @@ class AddRandomGaussianNoise(object):
         직접 구현하여 사용할 수 있습니다.
     """
 
-    def __init__(self, mean=0., std=1., p = 0.5):
+    def __init__(self, mean=0., std=0.01, p = 0.5):
         self.std = std
         self.mean = mean
         self.p = p
@@ -87,14 +87,14 @@ class CustomAugmentation:
 class GuCustomAugmentation:
     def __init__(self, resize, mean, std, **args):
         self.transform = Compose([
-            RandomRotation(degrees=(-10,10)),
+            RandomAffine(degrees = (-10,10), shear = (-5,5)),
             CenterCrop((320, 256)),
             Resize(resize, Image.BILINEAR),
             ColorJitter(0.1, 0.1, 0.1, 0.1),
             RandomHorizontalFlip(p=0.5),
             ToTensor(),
             Normalize(mean=mean, std=std),
-            AddRandomGaussianNoise()
+            AddRandomGaussianNoise(p=0.5)
         ])
 
     def __call__(self, image):
