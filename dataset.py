@@ -90,7 +90,7 @@ class GuCustomAugmentation:
             RandomAffine(degrees = (-10,10), shear = (-5,5)),
             CenterCrop((320, 256)),
             Resize(resize, Image.BILINEAR),
-            ColorJitter(0.1, 0.1, 0.1, 0.1),
+            ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1),
             RandomHorizontalFlip(p=0.5),
             ToTensor(),
             Normalize(mean=mean, std=std),
@@ -203,7 +203,7 @@ class BaseAugmentation_alwaysgrayscale:
             RandomAffine(degrees = (-10,10), shear = (-5,5)),
             CenterCrop((320, 256)),
             Resize(resize, Image.BILINEAR),
-            ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue = 0.1),
+            ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1),
             Grayscale(num_output_channels=3),
             RandomHorizontalFlip(p=0.5),
             ToTensor(),
@@ -212,6 +212,9 @@ class BaseAugmentation_alwaysgrayscale:
 
     def __call__(self, image):
         return self.transform(image)
+    
+
+
 
     
 
