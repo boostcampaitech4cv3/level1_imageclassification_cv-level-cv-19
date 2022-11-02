@@ -625,7 +625,7 @@ if __name__ == '__main__':
     parser.add_argument('--epochs', type=int, default=200, help='number of epochs to train (default: 200)')
     parser.add_argument('--dataset', type=str, default='MaskSplitByProfileDatasetByClass', help='dataset augmentation type (default: Ma skBaseDataset)')
     parser.add_argument('--augmentation', type=str, default='BaseAugmentation', help='data augmentation type (default: BaseAugmentation)')
-    parser.add_argument("--resize", nargs="+", type=int, default=[128, 96], help='resize size for image when training')
+    parser.add_argument("--resize", nargs="+", type=int, default=[256, 192], help='resize size for image when training')
     parser.add_argument('--batch_size', type=int, default=64, help='input batch size for training (default: 64)')
     parser.add_argument('--valid_batch_size', type=int, default=1000, help='input batch size for validing (default: 1000)')
     parser.add_argument('--model', type=str, default='EfficientNet_B2', help='model type (default: ResNet50)')
