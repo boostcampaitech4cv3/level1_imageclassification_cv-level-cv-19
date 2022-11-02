@@ -180,13 +180,11 @@ class DenseNet121(nn.Module):
             parameter.requires_grad = False
         self.backbone.classifier.weight.requires_grad = True'''
         self.bn1 = nn.BatchNorm1d(512)
-        self.classifier2 = nn.Linear(512, 256)
-        self.bn2 = nn.BatchNorm1d(256)
-        self.classifier3 = nn.Linear(256, 128)
-        self.bn3 = nn.BatchNorm1d(128)
-        self.classifier4 = nn.Linear(128, num_classes)
+        self.classifier2 = nn.Linear(512, 128)
+        self.bn2 = nn.BatchNorm1d(128)
+        self.classifier3 = nn.Linear(128, num_classes)
         self.relu = nn.ReLU()
-        self.dropout = nn.Dropout(p=0.5)
+        #self.dropout = nn.Dropout(p=0.5)
     
     def forward(self, x):
         x = self.backbone(x)
@@ -197,10 +195,7 @@ class DenseNet121(nn.Module):
         x = self.relu(x)
         x = self.bn2(x)
         #x = self.dropout(x)
-        x = self.classifier3(x)
-        x = self.relu(x)
-        x = self.bn3(x)
-        output = self.classifier4(x)
+        output = self.classifier3(x)
         return output
     
 # densenet201
@@ -329,10 +324,34 @@ class ConvNext_Small_Shallow(nn.Module):
         self.backbone.classifier = nn.Sequential(
             self.LayerNorm2d((768,), eps=1e-06, elementwise_affine=True),
             nn.Flatten(start_dim=1, end_dim=-1),
-            nn.Linear(in_features=768, out_features=256, bias=True),
+            nn.Linear(in_features=768, out_features=64, bias=True),
             nn.ReLU(),
-            nn.BatchNorm1d(256),
-            nn.Linear(in_features=256, out_features=num_classes, bias=True)
+            nn.BatchNorm1d(64),
+            nn.Linear(in_features=64, out_features=num_classes, bias=True)
+        )
+    
+    def forward(self, x):
+        out = self.backbone(x)
+        return out
+    
+    class LayerNorm2d(nn.LayerNorm):
+        def forward(self, x: torch.Tensor) -> torch.Tensor:
+            x = x.permute(0, 2, 3, 1)
+            x = F.layer_norm(x, self.normalized_shape, self.weight, self.bias, self.eps)
+            x = x.permute(0, 3, 1, 2)
+            return x
+
+
+class ConvNext_Small_Shallow_without_BN(nn.Module): 
+    def __init__(self,num_classes): 
+        super().__init__()
+        self.backbone = convnext_small(weights = ConvNeXt_Small_Weights.DEFAULT)
+        self.backbone.classifier = nn.Sequential(
+            self.LayerNorm2d((768,), eps=1e-06, elementwise_affine=True),
+            nn.Flatten(start_dim=1, end_dim=-1),
+            nn.Linear(in_features=768, out_features=64, bias=True),
+            nn.ReLU(),
+            nn.Linear(in_features=64, out_features=num_classes, bias=True)
         )
     
     def forward(self, x):
