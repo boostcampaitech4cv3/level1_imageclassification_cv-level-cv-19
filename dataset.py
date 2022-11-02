@@ -585,9 +585,6 @@ class MaskSplitByProfileDatasetByClass(MaskBaseDataset):
     def get_multi_labels_val(self):
         return self.multi_labels_val
     
-    
-a  = MaskSplitByProfileDatasetByClass('/opt/ml/input/data/train/images')
-c,d = a.split_dataset()
 
 # 3-body dataset
 class Three_Body_MaskBaseDataset(MaskBaseDataset):
