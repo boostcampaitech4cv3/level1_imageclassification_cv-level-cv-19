@@ -99,6 +99,21 @@ class Swin_b_Deep(nn.Module):
         x = self.backbone(x)
         return x
 
+class Swin_b_Shallow(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        self.backbone = swin_b(weights='DEFAULT')
+        self.backbone.head = nn.Sequential(
+        nn.Linear(1024, 128),
+        nn.LeakyReLU(),
+        nn.BatchNorm1d(128),
+        nn.Linear(128, num_classes),
+        )
+
+    def forward(self, x):
+        x = self.backbone(x)
+        return x
+
 from torchvision.models import swin_t
 class Swin_T_Deep(nn.Module):
     def __init__(self, num_classes):
@@ -403,6 +418,33 @@ class ConvNext_Large(nn.Module):
             nn.Linear(in_features=256, out_features=64, bias=True),
             nn.ReLU(),
             nn.BatchNorm1d(64),
+            nn.Linear(in_features=64, out_features=num_classes, bias=True)
+        )
+    
+    def forward(self, x):
+        out = self.backbone(x)
+        return out
+    
+    class LayerNorm2d(nn.LayerNorm):
+        def forward(self, x: torch.Tensor) -> torch.Tensor:
+            x = x.permute(0, 2, 3, 1)
+            x = F.layer_norm(x, self.normalized_shape, self.weight, self.bias, self.eps)
+            x = x.permute(0, 3, 1, 2)
+            return x
+        
+        
+from torchvision.models import convnext_small, ConvNeXt_Small_Weights
+class ConvNext_Small_without_BN(nn.Module): 
+    def __init__(self,num_classes): 
+        super().__init__()
+        self.backbone = convnext_small(weights = ConvNeXt_Small_Weights.DEFAULT)
+        self.backbone.classifier = nn.Sequential(
+            self.LayerNorm2d((768,), eps=1e-06, elementwise_affine=True),
+            nn.Flatten(start_dim=1, end_dim=-1),
+            nn.Linear(in_features=768, out_features=256, bias=True),
+            nn.ReLU(),
+            nn.Linear(in_features=256, out_features=64, bias=True),
+            nn.ReLU(),
             nn.Linear(in_features=64, out_features=num_classes, bias=True)
         )
     
