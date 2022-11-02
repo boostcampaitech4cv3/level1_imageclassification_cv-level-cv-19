@@ -135,6 +135,22 @@ class BaseAugmentation_without_hue:
     def __call__(self, image):
         return self.transform(image)
     
+class BaseAugmentation_more_contrast_with_hue_with_gaussian:
+    def __init__(self, resize, mean, std, **args):
+        self.transform = Compose([
+            RandomAffine(degrees = (-10,10), shear = (-5,5)),
+            CenterCrop((320, 256)),
+            Resize(resize, Image.BILINEAR),
+            ColorJitter(brightness=0.1, contrast=0.3, saturation=0.1, hue=0.1),
+            RandomHorizontalFlip(p=0.5),
+            ToTensor(),
+            Normalize(mean=mean, std=std),
+            AddRandomGaussianNoise(p=0.5)
+        ])
+
+    def __call__(self, image):
+        return self.transform(image)
+    
 
 class BaseAugmentation_more_contrast:
     def __init__(self, resize, mean, std, **args):
