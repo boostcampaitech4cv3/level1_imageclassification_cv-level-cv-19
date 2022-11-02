@@ -290,7 +290,7 @@ class AgeLabels(int, Enum):
 
         if value < 30:
             return cls.YOUNG
-        elif value < 60:   # psudo labelling : 58
+        elif value < 58:   # psudo labelling : 58
             return cls.MIDDLE
         else:
             return cls.OLD
