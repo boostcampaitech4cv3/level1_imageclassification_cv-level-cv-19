@@ -39,6 +39,7 @@ def seed_everything(seed):
     torch.backends.cudnn.benchmark = False
     np.random.seed(seed)
     random.seed(seed)
+    os.environ["PYTHONHASHSEED"] = str(seed)
 
 
 def get_lr(optimizer):
