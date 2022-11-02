@@ -92,7 +92,7 @@ class GuCustomAugmentation:
             RandomAffine(degrees = (-10,10), shear = (-5,5)),
             CenterCrop((320, 256)),
             Resize(resize, Image.BILINEAR),
-            ColorJitter(0.1, 0.1, 0.1, 0.1),
+            ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1),
             RandomHorizontalFlip(p=0.5),
             RandomAdjustSharpness(sharpness_factor=2),
             ToTensor(),
@@ -108,7 +108,7 @@ class GUNCustomAugmentation:
         self.transform = Compose([
             RandomAffine(degrees = (-10,10), shear = (-5,5)),
             CenterCrop((320, 256)),
-            Resize(resize, Image.BILINEAR),
+            Resize(resize, Image.BILINEAR), # 256,192
             ColorJitter(0.1, 0.1, 0.1, 0.1),
             RandomHorizontalFlip(p=0.5),
             ToTensor(),
@@ -206,7 +206,7 @@ class BaseAugmentation_alwaysgrayscale:
             RandomAffine(degrees = (-10,10), shear = (-5,5)),
             CenterCrop((320, 256)),
             Resize(resize, Image.BILINEAR),
-            ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue = 0.1),
+            ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1),
             Grayscale(num_output_channels=3),
             RandomHorizontalFlip(p=0.5),
             ToTensor(),
@@ -215,6 +215,9 @@ class BaseAugmentation_alwaysgrayscale:
 
     def __call__(self, image):
         return self.transform(image)
+    
+
+
 
     
 
@@ -476,6 +479,7 @@ class MaskSplitByProfileDatasetByClass(MaskBaseDataset):
         for fns in fname_by_labels:
             label_len = len(fns)
             
+            random.seed(42)
             val_sample = random.sample(fns, int(label_len*val_ratio))
             val_profiles.update(val_sample)
             
@@ -535,6 +539,10 @@ class MaskSplitByProfileDatasetByClass(MaskBaseDataset):
     
     def get_multi_labels(self):
         return self.multi_labels
+    
+    
+a  = MaskSplitByProfileDatasetByClass('/opt/ml/input/data/train/images')
+c,d = a.split_dataset()
 
 # 3-body dataset
 class Three_Body_MaskBaseDataset(MaskBaseDataset):
