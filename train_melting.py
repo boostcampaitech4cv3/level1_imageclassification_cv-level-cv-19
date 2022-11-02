@@ -570,7 +570,7 @@ def train(data_dir, model_dir, args):
                 figure_wrong_age.savefig(save_dir+"/wrong_age_image.png")
              
             # --change freezing
-            if early_stopping < args.patient*3/4:
+            if early_stopping < args.patient*1/2:
                 for param, weight in model.named_parameters():
                     weight.requires_grad = True
                 print(f"change freezing, train all parameters from {epoch}")
