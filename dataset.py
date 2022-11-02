@@ -150,6 +150,23 @@ class BaseAugmentation_more_contrast_with_hue_with_gaussian:
 
     def __call__(self, image):
         return self.transform(image)
+
+
+class BaseAugmentation_more_contrast_without_hue_with_gaussian:
+    def __init__(self, resize, mean, std, **args):
+        self.transform = Compose([
+            RandomAffine(degrees = (-10,10), shear = (-5,5)),
+            CenterCrop((320, 256)),
+            Resize(resize, Image.BILINEAR),
+            ColorJitter(brightness=0.1, contrast=0.3, saturation=0.1),
+            RandomHorizontalFlip(p=0.5),
+            ToTensor(),
+            Normalize(mean=mean, std=std),
+            AddRandomGaussianNoise(p=0.5)
+        ])
+
+    def __call__(self, image):
+        return self.transform(image)
     
 
 class BaseAugmentation_more_contrast:
@@ -273,7 +290,7 @@ class AgeLabels(int, Enum):
 
         if value < 30:
             return cls.YOUNG
-        elif value < 60:
+        elif value < 60:   # psudo labelling : 58
             return cls.MIDDLE
         else:
             return cls.OLD
