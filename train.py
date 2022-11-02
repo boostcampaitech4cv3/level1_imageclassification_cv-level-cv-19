@@ -41,6 +41,7 @@ def seed_everything(seed):
     torch.backends.cudnn.benchmark = False
     np.random.seed(seed)
     random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
     
 
 
@@ -264,7 +265,7 @@ def train(data_dir, model_dir, args):
         sampler_flag = (True, None)
     else:
         sampler_module = getattr(import_module("sampler"), args.sampler)
-        sampler_flag = (False, sampler_module(train_set, labels =  dataset.get_multi_labels())())
+        sampler_flag = (False, sampler_module(train_set, labels =  dataset_train.get_multi_labels())())
     train_loader = DataLoader(
         train_set,
         batch_size=args.batch_size,
@@ -558,15 +559,15 @@ def train(data_dir, model_dir, args):
                 # figure_wrong = grid_image(inputs_np_wrong, labels_wrong, preds_wrong, n= len(labels_wrong), fig_size = (40,40))
                 # figure_wrong.savefig(save_dir+"/wrong_image.png")
                     
-                inputs_np_wrong_mask = dataset_module.denormalize_image(inputs_np_wrong_mask, dataset.mean, dataset.std)
+                inputs_np_wrong_mask = dataset_module.denormalize_image(inputs_np_wrong_mask, dataset_train.mean, dataset_train.std)
                 figure_wrong_mask = grid_image(inputs_np_wrong_mask, labels_wrong_mask, preds_wrong_mask, n= len(labels_wrong_mask), fig_size = (64,48))
                 figure_wrong_mask.savefig(save_dir+"/wrong_mask_image.png")
                     
-                inputs_np_wrong_gender = dataset_module.denormalize_image(inputs_np_wrong_gender, dataset.mean, dataset.std)
+                inputs_np_wrong_gender = dataset_module.denormalize_image(inputs_np_wrong_gender, dataset_train.mean, dataset_train.std)
                 figure_wrong_gender = grid_image(inputs_np_wrong_gender, labels_wrong_gender, preds_wrong_gender, n= len(labels_wrong_gender), fig_size = (64,48))
                 figure_wrong_gender.savefig(save_dir+"/wrong_gender_image.png")
                     
-                inputs_np_wrong_age = dataset_module.denormalize_image(inputs_np_wrong_age, dataset.mean, dataset.std)
+                inputs_np_wrong_age = dataset_module.denormalize_image(inputs_np_wrong_age, dataset_train.mean, dataset_train.std)
                 figure_wrong_age = grid_image(inputs_np_wrong_age, labels_wrong_age, preds_wrong_age, n= len(labels_wrong_age), fig_size = (64,48))
                 figure_wrong_age.savefig(save_dir+"/wrong_age_image.png")
                     
