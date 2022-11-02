@@ -261,17 +261,11 @@ def train(data_dir, model_dir, args):
         ]))
     _, val_set = dataset_val.split_dataset()
     
-
-    print("train_set", len(train_set.dataset.get_multi_labels()))
-    print("val_set", len(val_set.dataset.get_multi_labels_val()))
-
-    
     dataset = ConcatDataset([train_set, val_set])
     
     stratified_kfold = StratifiedKFold(5, shuffle=True)
 
     Y = train_set.dataset.get_multi_labels() + val_set.dataset.get_multi_labels_val()
-    # print(Y)
 
     for fold, (train_idx, test_idx) in enumerate(stratified_kfold.split(dataset, Y)):
         print('############ FOLD ',fold+1,'############')
@@ -327,8 +321,12 @@ def train(data_dir, model_dir, args):
             scheduler = scheduler_module.get_scheduler(scheduler_module,args.scheduler, optimizer)
 
         # -- logging
-        logger = SummaryWriter(log_dir=save_dir)
-        with open(os.path.join(save_dir, f'{fold+1}_config.json'), 'w', encoding='utf-8') as f:
+        fold_save_dir = save_dir+f"/{fold+1}"
+        if not os.path.exists(fold_save_dir):
+            os.makedirs(fold_save_dir)
+        logger = SummaryWriter(log_dir=fold_save_dir)
+
+        with open(os.path.join(fold_save_dir, f'{fold+1}_config.json'), 'w', encoding='utf-8') as f:
             json.dump(vars(args), f, ensure_ascii=False, indent=4)
         layout = {
             "Train_Val": {
@@ -553,17 +551,17 @@ def train(data_dir, model_dir, args):
                     
                 if f1_score > best_f1_score:
                     print(f"New best model for f1 score : {f1_score:4.4}! saving the best model..")
-                    torch.save(model.module.state_dict(), f"{save_dir}/K-Fold[{fold+1}]_{epoch}_best_f1_{f1_score:4.3}_{val_acc:4.3}.pth")
+                    torch.save(model.module.state_dict(), f"{fold_save_dir}/K-Fold[{fold+1}]_{epoch}_best_f1_{f1_score:4.3}_{val_acc:4.3}.pth")
                     if args.model_save:
-                        torch.save(model, f"{save_dir}/K-Fold[{fold+1}]_{epoch}best_f1{f1_score:4.4}_{val_acc:4.4}.pth")
+                        torch.save(model, f"{fold_save_dir}/K-Fold[{fold+1}]_{epoch}best_f1{f1_score:4.4}_{val_acc:4.4}.pth")
                     best_f1_score = f1_score
                     best_val_acc = val_acc
                     flag = False
                 
                 if flag == False:
                     print("saving confusion matrix")
-                    confusion_all_fig.savefig(save_dir+f"/K-Fold[{fold+1}]_best_18_class_confusion_matrix.png")
-                    confusion_sep_fig.savefig(save_dir+f"/K-Fold[{fold+1}]_best_sep_class_confusion_matrix.png")
+                    confusion_all_fig.savefig(fold_save_dir+f"/K-Fold[{fold+1}]_best_18_class_confusion_matrix.png")
+                    confusion_sep_fig.savefig(fold_save_dir+f"/K-Fold[{fold+1}]_best_sep_class_confusion_matrix.png")
                     
                 if wrong_flag:
                     print("saving wrong images")
@@ -574,15 +572,15 @@ def train(data_dir, model_dir, args):
                         
                     inputs_np_wrong_mask = dataset_module.denormalize_image(inputs_np_wrong_mask, dataset.mean, dataset.std)
                     figure_wrong_mask = grid_image(inputs_np_wrong_mask, labels_wrong_mask, preds_wrong_mask, n= len(labels_wrong_mask), fig_size = (64,48))
-                    figure_wrong_mask.savefig(save_dir+f"/K-Fold[{fold+1}]_wrong_mask_image.png")
+                    figure_wrong_mask.savefig(fold_save_dir+f"/K-Fold[{fold+1}]_wrong_mask_image.png")
                         
                     inputs_np_wrong_gender = dataset_module.denormalize_image(inputs_np_wrong_gender, dataset.mean, dataset.std)
                     figure_wrong_gender = grid_image(inputs_np_wrong_gender, labels_wrong_gender, preds_wrong_gender, n= len(labels_wrong_gender), fig_size = (64,48))
-                    figure_wrong_gender.savefig(save_dir+f"/K-Fold[{fold+1}]_wrong_gender_image.png")
+                    figure_wrong_gender.savefig(fold_save_dir+f"/K-Fold[{fold+1}]_wrong_gender_image.png")
                         
                     inputs_np_wrong_age = dataset_module.denormalize_image(inputs_np_wrong_age, dataset.mean, dataset.std)
                     figure_wrong_age = grid_image(inputs_np_wrong_age, labels_wrong_age, preds_wrong_age, n= len(labels_wrong_age), fig_size = (64,48))
-                    figure_wrong_age.savefig(save_dir+f"/K-Fold[{fold+1}]_wrong_age_image.png")
+                    figure_wrong_age.savefig(fold_save_dir+f"/K-Fold[{fold+1}]_wrong_age_image.png")
                         
                 # --early stopping
                 if val_loss < best_val_loss:
@@ -597,8 +595,8 @@ def train(data_dir, model_dir, args):
                             
                                         
                 print(
-                    f"K-Fold[{fold}/5] [Val] acc : {val_acc:4.2%}, loss: {val_loss:4.2}, f1: {f1_score:4.4}|| "
-                    f"K-Fold[{fold}/5] best loss: {best_val_loss:4.2}, best f1: {best_f1_score:4.4}, acc for best f1 : {best_val_acc:4.2%}"
+                    f"K-Fold[{fold+1}/5] [Val] acc : {val_acc:4.2%}, loss: {val_loss:4.2}, f1: {f1_score:4.4}|| "
+                    f"best loss: {best_val_loss:4.2}, best f1: {best_f1_score:4.4}, acc for best f1 : {best_val_acc:4.2%}"
                 )
                 logger.add_scalar("Val/loss", val_loss, epoch)
                 logger.add_scalar("Val/accuracy", val_acc, epoch)
