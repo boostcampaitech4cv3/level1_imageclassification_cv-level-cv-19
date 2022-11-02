@@ -472,20 +472,25 @@ class MaskSplitByProfileDatasetByClass(MaskBaseDataset):
     @staticmethod
     def _split_profile(profiles, val_ratio, fname_by_labels):
         length = len(profiles)
-        n_val = int(length * val_ratio) 
-
+        n_val = int(length * val_ratio)  
+                
         # ----- 바꿔야 할 부분 -----
-        val_profiles = set()
-        train_profiles = set()
+        val_profiles = []
+        train_profiles = []
         for fns in fname_by_labels:
+            
+            fns = np.array(fns)
             label_len = len(fns)
             
-            random.seed(42)
-            val_sample = random.sample(fns, int(label_len*val_ratio))
-            val_profiles.update(val_sample)
+            idx = range(len(fns))
             
-            train_sample = set(fns).difference(val_sample)
-            train_profiles.update(train_sample)
+            random.seed(42)
+            val_sample = random.sample(idx, int(label_len*val_ratio))
+            val_profiles.extend(fns[val_sample].tolist())
+            
+            idx_train = np.delete(np.array(idx), np.array(val_sample))
+            
+            train_profiles.extend(fns[idx_train].tolist())
         # --------------------------
         
         return {
@@ -540,10 +545,6 @@ class MaskSplitByProfileDatasetByClass(MaskBaseDataset):
     
     def get_multi_labels(self):
         return self.multi_labels
-    
-    
-a  = MaskSplitByProfileDatasetByClass('/opt/ml/input/data/train/images')
-c,d = a.split_dataset()
 
 # 3-body dataset
 class Three_Body_MaskBaseDataset(MaskBaseDataset):
