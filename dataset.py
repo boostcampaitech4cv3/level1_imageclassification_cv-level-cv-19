@@ -92,7 +92,7 @@ class GuCustomAugmentation:
             RandomAffine(degrees = (-10,10), shear = (-5,5)),
             CenterCrop((320, 256)),
             Resize(resize, Image.BILINEAR),
-            ColorJitter(0.1, 0.1, 0.1, 0.1),
+            ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1),
             RandomHorizontalFlip(p=0.5),
             RandomAdjustSharpness(sharpness_factor=2),
             ToTensor(),
@@ -108,7 +108,7 @@ class GUNCustomAugmentation:
         self.transform = Compose([
             RandomAffine(degrees = (-10,10), shear = (-5,5)),
             CenterCrop((320, 256)),
-            Resize(resize, Image.BILINEAR),
+            Resize(resize, Image.BILINEAR), # 256,192
             ColorJitter(0.1, 0.1, 0.1, 0.1),
             RandomHorizontalFlip(p=0.5),
             ToTensor(),
@@ -206,7 +206,7 @@ class BaseAugmentation_alwaysgrayscale:
             RandomAffine(degrees = (-10,10), shear = (-5,5)),
             CenterCrop((320, 256)),
             Resize(resize, Image.BILINEAR),
-            ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1, hue = 0.1),
+            ColorJitter(brightness=0.1, contrast=0.1, saturation=0.1),
             Grayscale(num_output_channels=3),
             RandomHorizontalFlip(p=0.5),
             ToTensor(),
@@ -215,6 +215,9 @@ class BaseAugmentation_alwaysgrayscale:
 
     def __call__(self, image):
         return self.transform(image)
+    
+
+
 
     
 
@@ -408,6 +411,7 @@ class MaskSplitByProfileDataset(MaskBaseDataset):
         length = len(profiles)
         n_val = int(length * val_ratio)
 
+        random.seed(42)
         val_indices = set(random.choices(range(length), k=n_val))
         train_indices = set(range(length)) - val_indices
         return {
@@ -468,19 +472,25 @@ class MaskSplitByProfileDatasetByClass(MaskBaseDataset):
     @staticmethod
     def _split_profile(profiles, val_ratio, fname_by_labels):
         length = len(profiles)
-        n_val = int(length * val_ratio) 
-
+        n_val = int(length * val_ratio)  
+                
         # ----- 바꿔야 할 부분 -----
-        val_profiles = set()
-        train_profiles = set()
+        val_profiles = []
+        train_profiles = []
         for fns in fname_by_labels:
+            
+            fns = np.array(fns)
             label_len = len(fns)
             
-            val_sample = random.sample(fns, int(label_len*val_ratio))
-            val_profiles.update(val_sample)
+            idx = range(len(fns))
             
-            train_sample = set(fns).difference(val_sample)
-            train_profiles.update(train_sample)
+            random.seed(42)
+            val_sample = random.sample(idx, int(label_len*val_ratio))
+            val_profiles.extend(fns[val_sample].tolist())
+            
+            idx_train = np.delete(np.array(idx), np.array(val_sample))
+            
+            train_profiles.extend(fns[idx_train].tolist())
         # --------------------------
         
         return {

@@ -17,6 +17,8 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 from dataset import MaskBaseDataset, MaskLabels, GenderLabels, AgeLabels
+from torchvision.transforms import RandomAdjustSharpness, Resize, ToTensor, Normalize, Compose, CenterCrop, ColorJitter, RandomHorizontalFlip, RandomRotation, RandomAffine, RandomGrayscale, Grayscale
+from PIL import Image
 from loss import create_criterion
 from torchmetrics import ConfusionMatrix, F1Score
 from torchmetrics.classification import MulticlassF1Score, MulticlassAccuracy
@@ -39,7 +41,8 @@ def seed_everything(seed):
     torch.backends.cudnn.benchmark = False
     np.random.seed(seed)
     random.seed(seed)
-    os.environ["PYTHONHASHSEED"] = str(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    
 
 
 def get_lr(optimizer):
@@ -224,29 +227,45 @@ def train(data_dir, model_dir, args):
 
     # -- dataset
     dataset_module = getattr(import_module("dataset"), args.dataset)  # default: MaskBaseDataset
-    dataset = dataset_module(
+    dataset_train = dataset_module(
         data_dir=data_dir,
     )
-    num_classes = dataset.num_classes  # 18
+    
+    dataset_val = dataset_module(
+        data_dir=data_dir,
+    )
+    num_classes = dataset_train.num_classes  # 18
+    
+    
 
     # -- augmentation
     transform_module = getattr(import_module("dataset"), args.augmentation)  # default: BaseAugmentation
     transform = transform_module(
         resize=args.resize,
-        mean=dataset.mean,
-        std=dataset.std,
+        mean=dataset_train.mean,
+        std=dataset_train.std,
     )
-    dataset.set_transform(transform)
+    
 
     # -- data_loader & sampler
-    train_set, val_set = dataset.split_dataset()
+    dataset_train.set_transform(transform)
+    train_set, _ = dataset_train.split_dataset()
     
+    dataset_val.set_transform(Compose([
+            CenterCrop((320, 256)),
+            Resize(args.resize, Image.BILINEAR),
+            ToTensor(),
+            Normalize(mean=(0.548, 0.504, 0.479), std=(0.237, 0.247, 0.246)),
+        ]))
+    _, val_set = dataset_val.split_dataset()
+    
+
     
     if args.sampler == "None":
         sampler_flag = (True, None)
     else:
         sampler_module = getattr(import_module("sampler"), args.sampler)
-        sampler_flag = (False, sampler_module(train_set, labels =  dataset.get_multi_labels())())
+        sampler_flag = (False, sampler_module(train_set, labels =  dataset_train.get_multi_labels())())
     train_loader = DataLoader(
         train_set,
         batch_size=args.batch_size,
@@ -435,7 +454,7 @@ def train(data_dir, model_dir, args):
 
                 if figure is None and epoch == 0:
                     inputs_np = torch.clone(inputs).detach().cpu().permute(0, 2, 3, 1).numpy()
-                    inputs_np = dataset_module.denormalize_image(inputs_np, dataset.mean, dataset.std)
+                    inputs_np = dataset_module.denormalize_image(inputs_np, dataset_train.mean, dataset_train.std)
                     figure = grid_image(
                         inputs_np, labels, preds, n=16, shuffle=args.dataset != "MaskSplitByProfileDataset"
                     )
@@ -540,15 +559,15 @@ def train(data_dir, model_dir, args):
                 # figure_wrong = grid_image(inputs_np_wrong, labels_wrong, preds_wrong, n= len(labels_wrong), fig_size = (40,40))
                 # figure_wrong.savefig(save_dir+"/wrong_image.png")
                     
-                inputs_np_wrong_mask = dataset_module.denormalize_image(inputs_np_wrong_mask, dataset.mean, dataset.std)
+                inputs_np_wrong_mask = dataset_module.denormalize_image(inputs_np_wrong_mask, dataset_train.mean, dataset_train.std)
                 figure_wrong_mask = grid_image(inputs_np_wrong_mask, labels_wrong_mask, preds_wrong_mask, n= len(labels_wrong_mask), fig_size = (64,48))
                 figure_wrong_mask.savefig(save_dir+"/wrong_mask_image.png")
                     
-                inputs_np_wrong_gender = dataset_module.denormalize_image(inputs_np_wrong_gender, dataset.mean, dataset.std)
+                inputs_np_wrong_gender = dataset_module.denormalize_image(inputs_np_wrong_gender, dataset_train.mean, dataset_train.std)
                 figure_wrong_gender = grid_image(inputs_np_wrong_gender, labels_wrong_gender, preds_wrong_gender, n= len(labels_wrong_gender), fig_size = (64,48))
                 figure_wrong_gender.savefig(save_dir+"/wrong_gender_image.png")
                     
-                inputs_np_wrong_age = dataset_module.denormalize_image(inputs_np_wrong_age, dataset.mean, dataset.std)
+                inputs_np_wrong_age = dataset_module.denormalize_image(inputs_np_wrong_age, dataset_train.mean, dataset_train.std)
                 figure_wrong_age = grid_image(inputs_np_wrong_age, labels_wrong_age, preds_wrong_age, n= len(labels_wrong_age), fig_size = (64,48))
                 figure_wrong_age.savefig(save_dir+"/wrong_age_image.png")
                     
@@ -604,7 +623,7 @@ if __name__ == '__main__':
     # Data and model checkpoints directories
     parser.add_argument('--seed', type=int, default=42, help='random seed (default: 42)')
     parser.add_argument('--epochs', type=int, default=200, help='number of epochs to train (default: 200)')
-    parser.add_argument('--dataset', type=str, default='MaskSplitByProfileDataset', help='dataset augmentation type (default: MaskBaseDataset)')
+    parser.add_argument('--dataset', type=str, default='MaskSplitByProfileDatasetByClass', help='dataset augmentation type (default: Ma skBaseDataset)')
     parser.add_argument('--augmentation', type=str, default='BaseAugmentation', help='data augmentation type (default: BaseAugmentation)')
     parser.add_argument("--resize", nargs="+", type=int, default=[128, 96], help='resize size for image when training')
     parser.add_argument('--batch_size', type=int, default=64, help='input batch size for training (default: 64)')
