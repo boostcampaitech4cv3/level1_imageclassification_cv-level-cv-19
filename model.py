@@ -165,13 +165,11 @@ class DenseNet121(nn.Module):
             parameter.requires_grad = False
         self.backbone.classifier.weight.requires_grad = True'''
         self.bn1 = nn.BatchNorm1d(512)
-        self.classifier2 = nn.Linear(512, 256)
-        self.bn2 = nn.BatchNorm1d(256)
-        self.classifier3 = nn.Linear(256, 128)
-        self.bn3 = nn.BatchNorm1d(128)
-        self.classifier4 = nn.Linear(128, num_classes)
+        self.classifier2 = nn.Linear(512, 128)
+        self.bn2 = nn.BatchNorm1d(128)
+        self.classifier3 = nn.Linear(128, num_classes)
         self.relu = nn.ReLU()
-        self.dropout = nn.Dropout(p=0.5)
+        #self.dropout = nn.Dropout(p=0.5)
     
     def forward(self, x):
         x = self.backbone(x)
@@ -182,10 +180,7 @@ class DenseNet121(nn.Module):
         x = self.relu(x)
         x = self.bn2(x)
         #x = self.dropout(x)
-        x = self.classifier3(x)
-        x = self.relu(x)
-        x = self.bn3(x)
-        output = self.classifier4(x)
+        output = self.classifier3(x)
         return output
     
 # densenet201
