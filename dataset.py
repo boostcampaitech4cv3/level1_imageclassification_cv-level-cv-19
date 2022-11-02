@@ -467,6 +467,7 @@ class MaskSplitByProfileDatasetByClass(MaskBaseDataset):
     def __init__(self, data_dir, mean=(0.548, 0.504, 0.479), std=(0.237, 0.247, 0.246), val_ratio=0.2):
         self.indices = defaultdict(list)
         self.multi_labels = []
+        self.multi_labels_val = []
         super().__init__(data_dir, mean, std, val_ratio)
 
     @staticmethod
@@ -539,12 +540,21 @@ class MaskSplitByProfileDatasetByClass(MaskBaseDataset):
                     cnt += 1
                     if phase == "train":
                         self.multi_labels.append(self.encode_multi_class(mask_label, gender_label, age_label))
+                    else:
+                        self.multi_labels_val.append(self.encode_multi_class(mask_label, gender_label, age_label))
 
     def split_dataset(self) -> List[Subset]:
         return [Subset(self, indices) for phase, indices in self.indices.items()]
     
     def get_multi_labels(self):
         return self.multi_labels
+        
+    def get_multi_labels_val(self):
+        return self.multi_labels_val
+    
+    
+a  = MaskSplitByProfileDatasetByClass('/opt/ml/input/data/train/images')
+c,d = a.split_dataset()
 
 # 3-body dataset
 class Three_Body_MaskBaseDataset(MaskBaseDataset):
