@@ -154,6 +154,24 @@ class Swin_T_Deep(nn.Module):
         x = self.backbone(x)
         return x
 
+# Swin_s
+from torchvision.models import swin_s
+class Swin_s_Shallow(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        self.backbone = swin_s(weights='DEFAULT')
+        self.backbone.head = nn.Sequential(
+        nn.Linear(768, 128),
+        nn.LeakyReLU(),
+        nn.BatchNorm1d(128),
+        nn.Linear(128, num_classes),
+        )
+
+    def forward(self, x):
+        x = self.backbone(x)
+        return x
+
+
 from torchvision.models import resnext50_32x4d
 class ResNext50(nn.Module):
     def __init__(self, num_classes):
