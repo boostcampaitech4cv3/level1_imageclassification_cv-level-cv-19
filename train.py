@@ -537,7 +537,7 @@ def train(data_dir, model_dir, args):
             #         torch.save(model, f"{save_dir}/{epoch}best_acc{val_acc}.pt")
             #     best_val_acc = val_acc
             #     flag = False
-                
+
             if f1_score > best_f1_score:
                 print(f"New best model for f1 score : {f1_score:4.4}! saving the best model..")
                 torch.save(model.module.state_dict(), f"{save_dir}/{epoch}_best_f1_{f1_score:4.3}_{val_acc:4.3}.pth")
