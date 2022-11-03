@@ -229,10 +229,12 @@ def train(data_dir, model_dir, args):
     dataset_module = getattr(import_module("dataset"), args.dataset)  # default: MaskBaseDataset
     dataset_train = dataset_module(
         data_dir=data_dir,
+        val_ratio = args.val_ratio
     )
     
     dataset_val = dataset_module(
         data_dir=data_dir,
+        val_ratio = args.val_ratio
     )
     num_classes = dataset_train.num_classes  # 18
     
