@@ -75,7 +75,7 @@ class EfficientNet_V2_L_shallow(nn.Module):
         super().__init__()
         self.backbone = efficientnet_v2_l(weights='DEFAULT')
         self.backbone.classifier = nn.Sequential(
-            Dropout(p=0.4, inplace=True)
+            Dropout(p=0.4, inplace=True),
             nn.Linear(in_features=1280, out_features=512, bias=True),
             nn.ReLU(),
             nn.BatchNorm1d(512),
