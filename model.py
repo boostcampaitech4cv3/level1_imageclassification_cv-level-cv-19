@@ -69,6 +69,27 @@ class EfficientNet_B6(nn.Module):
         output = self.backbone(x)
         return output
     
+from torchvision.models import efficientnet_v2_l
+class EfficientNet_V2_L_shallow(nn.Module):
+    def __init__(self, num_classes):
+        super().__init__()
+        self.backbone = efficientnet_v2_l(weights='DEFAULT')
+        self.backbone.classifier = nn.Sequential(
+            Dropout(p=0.4, inplace=True)
+            nn.Linear(in_features=1280, out_features=512, bias=True),
+            nn.ReLU(),
+            nn.BatchNorm1d(512),
+            nn.Linear(in_features=512, out_features=64, bias=True),
+            nn.ReLU(),
+            nn.BatchNorm1d(64),
+            nn.Linear(in_features=64, out_features=num_classes, bias=True)
+        )
+
+    def forward(self, x):
+        output = self.backbone(x)
+        return output
+
+    
 # Swin_b
 from torchvision.models import swin_b, swin_t
 class Swin_b(nn.Module):
