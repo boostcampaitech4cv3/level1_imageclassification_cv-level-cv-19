@@ -1,0 +1,28 @@
+{
+    "seed": 42,
+    "epochs": 200,
+    "dataset": "LabelSplitByProfileDataset",
+    "augmentation": "GUNCustomAugmentation",
+    "resize": [
+        128,
+        96
+    ],
+    "batch_size": 64,
+    "valid_batch_size": 1000,
+    "model": "MultiHeadResNext50",
+    "optimizer": "AdamW",
+    "lr": 0.0001,
+    "val_ratio": 0.2,
+    "mask_criterion": "focal",
+    "gender_criterion": "focal",
+    "age_criterion": "focal",
+    "log_interval": 20,
+    "name": "221031_MultiHeadResNext50_DEFAULT",
+    "patient": 25,
+    "cutmix_prob": 0.4,
+    "beta": 0.4,
+    "sampler": "Weighted_Random_Sampler",
+    "scheduler": "None",
+    "data_dir": "/opt/ml/input/data/train/images",
+    "model_dir": "./model"
+}
