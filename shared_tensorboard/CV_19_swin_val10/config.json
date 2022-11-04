@@ -1,0 +1,30 @@
+{
+    "seed": 42,
+    "epochs": 200,
+    "dataset": "MaskSplitByProfileDatasetByClass",
+    "augmentation": "BaseAugmentation_more_contrast_without_hue_with_gaussian",
+    "resize": [
+        256,
+        192
+    ],
+    "batch_size": 64,
+    "valid_batch_size": 1000,
+    "model": "Swin_b_Shallow",
+    "optimizer": "AdamP",
+    "lr": 0.0001,
+    "val_ratio": 0.1,
+    "criterion": "focal_with_ls",
+    "log_interval": 20,
+    "name": "CV_19_swin_val10",
+    "patient": 8,
+    "cutmix_prob": 0.6,
+    "beta": 1.0,
+    "sampler": "Weighted_Random_Sampler",
+    "scheduler": "CosineLRScheduler",
+    "model_save": false,
+    "wrong_fig": [
+        -1
+    ],
+    "data_dir": "/opt/ml/input/data/train/images",
+    "model_dir": "./model"
+}
