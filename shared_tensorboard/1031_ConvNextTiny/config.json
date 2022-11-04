@@ -1,0 +1,30 @@
+{
+    "seed": 42,
+    "epochs": 200,
+    "dataset": "MaskSplitByProfileDataset",
+    "augmentation": "GUNCustomAugmentation",
+    "resize": [
+        128,
+        96
+    ],
+    "batch_size": 64,
+    "valid_batch_size": 1000,
+    "model": "ConvNext_Tiny",
+    "optimizer": "AdamW",
+    "lr": 0.0001,
+    "val_ratio": 0.2,
+    "criterion": "focal",
+    "log_interval": 20,
+    "name": "ConvNext_Tiny",
+    "patient": 25,
+    "cutmix_prob": 0.4,
+    "beta": 0.4,
+    "sampler": "Weighted_Random_Sampler",
+    "scheduler": "None",
+    "model_save": false,
+    "wrong_fig": [
+        -1
+    ],
+    "data_dir": "/opt/ml/input/data/train/images",
+    "model_dir": "./model"
+}
