@@ -1,0 +1,30 @@
+{
+    "seed": 42,
+    "epochs": 200,
+    "dataset": "MaskSplitByProfileDatasetByClass",
+    "augmentation": "BaseAugmentation_more_contrast_with_hue_with_gaussian",
+    "resize": [
+        128,
+        96
+    ],
+    "batch_size": 64,
+    "valid_batch_size": 1000,
+    "model": "DenseNet121",
+    "optimizer": "AdamP",
+    "lr": 0.0001,
+    "val_ratio": 0.2,
+    "criterion": "focal_with_ls",
+    "log_interval": 20,
+    "name": "1102DenseNet_121_melting",
+    "patient": 15,
+    "cutmix_prob": 0.6,
+    "beta": 1.0,
+    "sampler": "Imbalanced_Dataset_Sampler",
+    "scheduler": "CosineLRScheduler",
+    "model_save": false,
+    "wrong_fig": [
+        -1
+    ],
+    "data_dir": "/opt/ml/input/data/train/images",
+    "model_dir": "./model"
+}
