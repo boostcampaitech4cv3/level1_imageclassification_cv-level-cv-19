@@ -1,0 +1,30 @@
+{
+    "seed": 42,
+    "epochs": 200,
+    "dataset": "MaskSplitByProfileDatasetByClass",
+    "augmentation": "GuCustomAugmentation",
+    "resize": [
+        256,
+        192
+    ],
+    "batch_size": 64,
+    "valid_batch_size": 1000,
+    "model": "ConvNext_Small",
+    "optimizer": "AdamP",
+    "lr": 0.0001,
+    "val_ratio": 0.2,
+    "criterion": "focal",
+    "log_interval": 20,
+    "name": "1102ConvNext_Gaussian",
+    "patient": 15,
+    "cutmix_prob": 0.5,
+    "beta": 1.0,
+    "sampler": "Weighted_Random_Sampler",
+    "scheduler": "CosineLRScheduler",
+    "model_save": false,
+    "wrong_fig": [
+        -1
+    ],
+    "data_dir": "/opt/ml/input/data/train/images",
+    "model_dir": "./model"
+}
