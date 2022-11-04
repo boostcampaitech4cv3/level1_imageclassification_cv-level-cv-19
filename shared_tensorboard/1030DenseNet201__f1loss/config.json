@@ -1,0 +1,27 @@
+{
+    "seed": 42,
+    "epochs": 200,
+    "dataset": "MaskSplitByProfileDataset",
+    "augmentation": "GUNCustomAugmentation",
+    "resize": [
+        128,
+        96
+    ],
+    "batch_size": 64,
+    "valid_batch_size": 1000,
+    "model": "DenseNet201",
+    "optimizer": "AdamW",
+    "lr": 0.001,
+    "val_ratio": 0.2,
+    "criterion": "f1",
+    "log_interval": 20,
+    "name": "DenseNet201__f1loss",
+    "patient": 15,
+    "cutmix_prob": 0.4,
+    "beta": 0.4,
+    "sampler": "Weighted_Random_Sampler",
+    "scheduler": "SGDR",
+    "model_save": true,
+    "data_dir": "/opt/ml/input/data/train/images",
+    "model_dir": "./model"
+}
