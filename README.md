@@ -17,11 +17,11 @@ Evaluation
 ![image](https://user-images.githubusercontent.com/54363784/200259606-07905834-50b3-47c3-942a-3ee9b71ec8c8.png)
 
 ## 프로젝트 팀 구성 및 역할
-20
+
 | [류건](https://github.com/jerry-ryu) | [심건희](https://github.com/jane79) | [윤태준](https://github.com/ta1231) | [이구](https://github.com/99sphere) | [이예라](https://github.com/Yera10) |
 | :-: | :-: | :-: | :-: | :-: | 
 |![image](https://avatars.githubusercontent.com/u/62556539?v=4)|![image](https://avatars.githubusercontent.com/u/48004826?v=4)|![image](https://avatars.githubusercontent.com/u/54363784?v=4) |![image](https://avatars.githubusercontent.com/u/59161083?s=400&u=e1dddd820da0add63917d38edf39e958471990f2&v=4)  |![image](https://avatars.githubusercontent.com/u/57178359?v=4)|  
-|  |[Blog](https://velog.io/@goodheart50)|| [Blog](https://99sphere-tech-blog.tistory.com/) | |
+|[Blog](https://kkwong-guin.tistory.com/)  |[Blog](https://velog.io/@goodheart50)|| [Blog](https://99sphere-tech-blog.tistory.com/) | |
 
 <div align="center">
 
@@ -31,6 +31,10 @@ Evaluation
 ![git](http://img.shields.io/badge/Git-000000?style=flat-square&logo=Git)
 ![github](http://img.shields.io/badge/Github-000000?style=flat-square&logo=Github)
 </div align="center">
+
+## 프로젝트 수행 절차 및 방법
+[![image](https://user-images.githubusercontent.com/62556539/200262300-3765b3e4-0050-4760-b008-f218d079a770.png)](https://www.notion.so/3f3a9a603c5348939bd3c16996aa2c22)
+
 
 ## 프로젝트 수행 결과
 
