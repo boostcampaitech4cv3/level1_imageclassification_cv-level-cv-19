@@ -205,11 +205,12 @@ f1-score가 accuracy와 동일한 값으로 출력되는 문제가 있었다. �
 
 ## 프로젝트 수행 결과
 
-![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/ddfcaf57-c7b1-45d3-905b-73b2aa7179c2/Untitled.png)
+![image](https://user-images.githubusercontent.com/48004826/200256241-5a24e451-ba00-463e-9804-0201bf08d947.png)
 
-![best_18_class_confusion_matrix.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/ab370192-1ca7-4833-b7bc-ea2e4655105d/best_18_class_confusion_matrix.png)
+![image](https://user-images.githubusercontent.com/48004826/200257688-72e05cbb-ebe4-47e8-82fb-75177b07b9c8.png)
 
-![best_sep_class_confusion_matrix.png](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/e04ba8d1-7c4b-4bb7-bf4d-7422310d1d03/best_sep_class_confusion_matrix.png)
+![image](https://user-images.githubusercontent.com/48004826/200257745-6427a467-e1a9-4019-b21a-0021ac6dd92a.png)
+
 
 앙상블용 모델:
 
@@ -273,13 +274,5 @@ Swin_S, EfficientNet_V2
 - 실험 결과를 각자의 서버에서는 쉽게 확인할 수 있지만, 다른 사람의 실험 결과를 확인하려면 tensorboard의 로그 파일을 개인적으로 요청하고, 다시 서버에 업로드 하는 등의 부수적인 과정이 필요했다. git과 log 파일의 저장 위치를 고려하여 자동으로 실험 결과 공유가 가능하도록 하거나, weight and bias를 사용하는 등의 개선이 가능할 것이다.
 - 모델의 학습이 끝난 후, 제출을 위한 최종 결과물을 선정하는 기준(best acc / best loss / best f1)이 프로젝트 중반에 바뀌었다. 이로인해 초반에 리더보드에서 확인한 점수들은 성능 비교에 활용할 수 없었다.
 - 모델 결과에 대한 평가와 분석을 위해서는 실험 도메인에 대한 이해와 실험 환경 구성(score metric, 시각화 등 )이 선행되어야 한다.
-
-![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/22375a20-3d76-4541-a7dd-024f2b8c4e41/Untitled.png)
-
-![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/88256a97-37d2-418c-8f01-136466d6e883/Untitled.png)
-
-![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/6f7c7168-768d-4409-af48-3f1aba3c11c2/Untitled.png)
-
-![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/62b4ba6e-b537-46ff-a004-f7c2fe16b120/Untitled.png)
 
 ---
