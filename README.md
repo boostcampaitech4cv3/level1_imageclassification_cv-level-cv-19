@@ -14,7 +14,7 @@ Evaluation
 - Submission 파일에 대한 평가는 F1 Score를 통해 진행됩니다.
 - F1 Score 에 대해 간략히 설명 드리면 다음과 같습니다.
 
-![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/fe6bb353-ec6b-40ab-8041-ca1a8af6ced1/Untitled.png)
+![image](https://user-images.githubusercontent.com/54363784/200259606-07905834-50b3-47c3-942a-3ee9b71ec8c8.png)
 
 ## 프로젝트 팀 구성 및 역할
 ## 프로젝트 팀 구성 및 역할
