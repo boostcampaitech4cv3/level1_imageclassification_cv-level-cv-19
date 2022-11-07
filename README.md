@@ -54,7 +54,7 @@ level1_imageclassification_cv-level-cv-19
 │   scheduler.py
 │   train.py
 │   train_melting.py
-│   train_stratified_k-fold.py
+└   train_stratified_k-fold.py
 
 ```
 
