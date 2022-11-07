@@ -25,13 +25,11 @@ Evaluation
 |  |  || [Blog](https://99sphere-tech-blog.tistory.com/) | |
 ## 프로젝트 수행 절차 및 방법
 
-🥸
-
 타임라인 이미지 추가 후 
 
 상세 설명
 
-![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/b301480f-fe75-4e57-8b32-f14f4e41a660/Untitled.png)
+![image](https://user-images.githubusercontent.com/54363784/200259373-9348d518-8cc7-493d-a984-33004aa7888a.png)
 
 ### 대회 이전 준비**(~10/24)**
 
