@@ -16,7 +16,7 @@ Evaluation
 
 ![image](https://user-images.githubusercontent.com/54363784/200259606-07905834-50b3-47c3-942a-3ee9b71ec8c8.png)
 
-## 프로젝트 팀 구성 및 역할
+## 프로젝트 팀 구성
 
 | [류건](https://github.com/jerry-ryu) | [심건희](https://github.com/jane79) | [윤태준](https://github.com/ta1231) | [이구](https://github.com/99sphere) | [이예라](https://github.com/Yera10) |
 | :-: | :-: | :-: | :-: | :-: | 
