@@ -55,13 +55,6 @@ level1_imageclassification_cv-level-cv-19
 │   train.py
 │   train_melting.py
 │   train_stratified_k-fold.py
-│   
-└───shared_tensorboard
-    ├───1030
-    ├───1031
-    ├───1101
-    ├───1102
-    └───1103
 
 ```
 
