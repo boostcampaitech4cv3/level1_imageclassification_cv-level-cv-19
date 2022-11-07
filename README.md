@@ -17,11 +17,12 @@ Evaluation
 ![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/fe6bb353-ec6b-40ab-8041-ca1a8af6ced1/Untitled.png)
 
 ## 프로젝트 팀 구성 및 역할
-| [류건](https://github.com/) | [심건희](https://github.com/) | [윤태준](https://github.com/) | [이구](https://github.com/99sphere) | [이예라]() |
+## 프로젝트 팀 구성 및 역할
+20
+| [류건](https://github.com/jerry-ryu) | [심건희](https://github.com/jane79) | [윤태준](https://github.com/ta1231) | [이구](https://github.com/99sphere) | [이예라](https://github.com/Yera10) |
 | :-: | :-: | :-: | :-: | :-: | 
 |  |   | |  |  |  
 |  |  || [Blog](https://99sphere-tech-blog.tistory.com/) | |
-
 ## 프로젝트 수행 절차 및 방법
 
 🥸
