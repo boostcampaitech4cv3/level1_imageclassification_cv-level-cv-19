@@ -32,9 +32,8 @@ Evaluation
 ![github](http://img.shields.io/badge/Github-000000?style=flat-square&logo=Github)
 </div align="center">
 ## 디렉토리 구조
+
 ```CMD
-Folder PATH listing
-Volume serial number is 9CE9-C83E
 level1_imageclassification_cv-level-cv-19
 │   .gitignore
 │   3_body_inference.py
