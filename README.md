@@ -31,9 +31,45 @@ Evaluation
 ![git](http://img.shields.io/badge/Git-000000?style=flat-square&logo=Git)
 ![github](http://img.shields.io/badge/Github-000000?style=flat-square&logo=Github)
 </div align="center">
+## 디렉토리 구조
+```CMD
+Folder PATH listing
+Volume serial number is 9CE9-C83E
+level1_imageclassification_cv-level-cv-19
+│   .gitignore
+│   3_body_inference.py
+│   3_body_train.py
+│   adamp.py
+│   dataset.py
+│   ensemble_final.ipynb
+│   inference.py
+│   loss.py
+│   model.py
+│   multi_head_inference.py
+│   multi_head_train.py
+│   README.md
+│   requirements.txt
+│   result_arrangement
+│   sampler.py
+│   scheduler.py
+│   train.py
+│   train_melting.py
+│   train_stratified_k-fold.py
+│   
+└───shared_tensorboard
+    ├───1030
+    ├───1031
+    ├───1101
+    ├───1102
+    └───1103
+
+```
+
 
 ## 프로젝트 수행 절차 및 방법
+<div align="center">
 [![image](https://user-images.githubusercontent.com/62556539/200262300-3765b3e4-0050-4760-b008-f218d079a770.png)](https://www.notion.so/3f3a9a603c5348939bd3c16996aa2c22)
+</div align="center">
 
 
 ## 프로젝트 수행 결과
