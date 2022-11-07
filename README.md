@@ -1,5 +1,5 @@
 # level1_imageclassification_cv-level-cv-19
-![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/dc78682b-c934-47a6-b6cd-8f5078440446/Untitled.png)
+![image](https://user-images.githubusercontent.com/54363784/200260245-b5b273e4-612f-4ba8-aa02-36a731f996c6.png)
 
 ## 프로젝트 개요
 
