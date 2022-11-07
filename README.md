@@ -23,6 +23,15 @@ Evaluation
 |![image](https://avatars.githubusercontent.com/u/62556539?v=4)|![image](https://avatars.githubusercontent.com/u/48004826?v=4)|![image](https://avatars.githubusercontent.com/u/54363784?v=4) |![image](https://avatars.githubusercontent.com/u/59161083?s=400&u=e1dddd820da0add63917d38edf39e958471990f2&v=4)  |![image](https://avatars.githubusercontent.com/u/57178359?v=4)|  
 |  |[Blog](https://velog.io/@goodheart50)|| [Blog](https://99sphere-tech-blog.tistory.com/) | |
 
+<div align="center">
+
+![python](http://img.shields.io/badge/Python-000000?style=flat-square&logo=Python)
+![pytorch](http://img.shields.io/badge/PyTorch-000000?style=flat-square&logo=PyTorch)
+![ubuntu](http://img.shields.io/badge/Ubuntu-000000?style=flat-square&logo=Ubuntu)
+![git](http://img.shields.io/badge/Git-000000?style=flat-square&logo=Git)
+![github](http://img.shields.io/badge/Github-000000?style=flat-square&logo=Github)
+</div align="center">
+
 ## 프로젝트 수행 결과
 
 ![image](https://user-images.githubusercontent.com/48004826/200256241-5a24e451-ba00-463e-9804-0201bf08d947.png)
