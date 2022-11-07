@@ -207,8 +207,6 @@ f1-score가 accuracy와 동일한 값으로 출력되는 문제가 있었다. �
 
 ![image](https://user-images.githubusercontent.com/48004826/200256241-5a24e451-ba00-463e-9804-0201bf08d947.png)
 
-![image](https://user-images.githubusercontent.com/48004826/200257688-72e05cbb-ebe4-47e8-82fb-75177b07b9c8.png)
-
 ![image](https://user-images.githubusercontent.com/48004826/200257745-6427a467-e1a9-4019-b21a-0021ac6dd92a.png)
 
 
