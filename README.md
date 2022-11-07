@@ -17,14 +17,10 @@ Evaluation
 ![Untitled](https://s3-us-west-2.amazonaws.com/secure.notion-static.com/fe6bb353-ec6b-40ab-8041-ca1a8af6ced1/Untitled.png)
 
 ## 프로젝트 팀 구성 및 역할
-
- - 성실한 IDLE: 심건희, 류건, 윤태준, 이구, 이예라
-
-- 심건희: 모델 설계 및 실험, 튜닝
-- 류건: 협업 리딩, 모델 실험, 튜닝, 기능구현, 모델 구조 구현  및 실험
-- 윤태준: 모델 실험, 튜닝 기능구현
-- 이구: 모델 실험, 튜닝, 기능구현, 모델 구조 구현 및 실험
-- 이예라: 모델 실험, 튜닝, 기능구현
+| [류건](https://github.com/AshHyun) | [심건희](https://github.com/danny0628) | [윤태준](https://github.com/hyun06000) | [이구](https://github.com/Gwang-chae) | [이예라](https://github.com/Haeun-Oh) |
+| :-: | :-: | :-: | :-: | :-: | 
+| ![image](https://user-images.githubusercontent.com/65941859/137628452-e2f573fe-0143-46b1-925d-bc58b2317474.png) | ![image](https://user-images.githubusercontent.com/65941859/137628521-10453cac-ca96-4df8-8ca0-b5b0d00930c0.png) | ![image](https://user-images.githubusercontent.com/65941859/137628500-342394c3-3bbe-4905-984b-48fae5fc75d6.png) | ![image](https://user-images.githubusercontent.com/65941859/137628535-9afd4035-8014-475c-899e-77304950c190.png) | ![image](https://user-images.githubusercontent.com/65941859/137628474-e9c4ab46-0a51-4a66-9109-7462d3a7ead1.png) 
+|  | [Blog](https://danny0628.tistory.com/) | [Blog](https://davi06000.tistory.com/) |[Notion](https://kcseo25.notion.site/) |  | [Notion](https://leeseungwoo.notion.site/) |
 
 ## 프로젝트 수행 절차 및 방법
 
