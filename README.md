@@ -79,36 +79,8 @@ level1_imageclassification_cv-level-cv-19
 ![image](https://user-images.githubusercontent.com/48004826/200257745-6427a467-e1a9-4019-b21a-0021ac6dd92a.png)
 
 
-앙상블용 모델:
-
-1. 태준: convnext tiny 0.7176 77.3651
-2. 예라: swin_b_shallow* 0.77058 0.7778
-3. 구: final_melting* 0.7398 78.2063
-4. ~~건: convnext without bn 0.663471.4127~~   (큰 성능 하락으로 제외)
-5. 건희: convnext_shallow 0.7598 81.0635
-
-*swin_b_shallow: swin base 아키텍처에서 classifier 부분을 2 fc layer로 수정한 것
-
-*_melting : 학습 초반부에 feature layer는 freezing 하여 classifier(fc) layer만 학습시킨 뒤, 어느정도 학습 된 뒤에 feature layer의 freezing을 풀어 feature layer와 classifier layer를 같이 finetuning 한 기법을 적용한 것
-
-추가적으로 앙상블용 2개 모델 훈련
-
-Swin_S, EfficientNet_V2
-
-*Swin_S : swin transformer의 swin_small 아키텍처
-
-앙상블 조합:
-
- 1. (convnext_small_shallow*, convnext_small, swin_b_shallow, convnext_tiny)
-
-1. (swin_b ,swim_s, convnext_melting, convnext)
-2. (Swin_b, convnext) ⇒ 
-3. (Swin_b, convnext, efficientNet) ⇒ efficientNet이 들어가니 성능 개선,  efficientNet이 Swin_b의 부족한 부분 채워준다고 생각
-4. (Swin_b,efficientNet) ⇒ best
-
 최종 모델:  convNext ⇒  ensemble(EfficientNet + Swin)
 
-*convnext_small_shallow : convnext_samll 아키텍처에서 classifier 부분을 2 fc layer로 수정한 것
 
 ## 자체 평가 의견
 
